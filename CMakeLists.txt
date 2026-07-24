@@ -44,6 +44,11 @@ endif()
 add_library(quin-core STATIC
     src/core/logging.cpp
     src/gui/debug_shell.cpp
+    src/loader/self_parser.cpp
+    src/loader/elf_loader.cpp
+    src/memory/address_space.cpp
+    src/kernel/libkernel.cpp
+    src/cpu/execution_engine.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -81,6 +86,7 @@ if(BUILD_TESTING)
     
     add_executable(quin-tests
         tests/unit/test_logging.cpp
+        tests/unit/test_elf_loader.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

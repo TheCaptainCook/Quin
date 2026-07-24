@@ -6,8 +6,9 @@
 
 namespace quin::gui {
 
-DebugShell::DebugShell() {
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized.");
+DebugShell::DebugShell()
+    : m_execution_engine(m_address_space, m_kernel) {
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 1 Loader & Memory Manager.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -38,14 +39,18 @@ void DebugShell::render_menu_bar() {
         }
 
         if (ImGui::BeginMenu("Emulation")) {
-            if (ImGui::MenuItem("Run / Resume", nullptr, false, m_elf_loaded)) {
-                QUIN_LOG_INFO("Emulation resumed.");
+            bool can_run = m_elf_loaded && (m_execution_engine.get_state() == quin::cpu::CpuState::Ready ||
+                                           m_execution_engine.get_state() == quin::cpu::CpuState::Paused);
+            if (ImGui::MenuItem("Run / Step", nullptr, false, can_run)) {
+                m_execution_engine.step();
             }
-            if (ImGui::MenuItem("Pause", nullptr, false, m_elf_loaded)) {
-                QUIN_LOG_INFO("Emulation paused.");
+            if (ImGui::MenuItem("Pause", nullptr, false, m_execution_engine.get_state() == quin::cpu::CpuState::Running)) {
+                m_execution_engine.pause();
             }
             if (ImGui::MenuItem("Reset", nullptr, false, m_elf_loaded)) {
-                QUIN_LOG_INFO("Emulation reset.");
+                m_execution_engine.reset();
+                m_elf_loaded = false;
+                QUIN_LOG_INFO("Emulation state reset.");
             }
             ImGui::EndMenu();
         }
@@ -66,7 +71,6 @@ void DebugShell::render_log_pane() {
     ImGui::SetNextWindowSize(ImVec2(780, 360), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("Log Console (spdlog)", nullptr)) {
-        // Controls Toolbar
         if (ImGui::Button("Clear")) {
             auto sink = quin::core::get_imgui_sink();
             if (sink) sink->clear();
@@ -87,36 +91,32 @@ void DebugShell::render_log_pane() {
 
         ImGui::Separator();
 
-        // Scrolling Region
         ImGui::BeginChild("LogScrollingRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
         auto sink = quin::core::get_imgui_sink();
         if (sink) {
             auto entries = sink->get_entries();
             for (const auto& entry : entries) {
-                // Apply Severity Filters
                 if (entry.level == spdlog::level::info && !m_show_info) continue;
                 if (entry.level == spdlog::level::warn && !m_show_warn) continue;
                 if (entry.level == spdlog::level::err && !m_show_error) continue;
                 if (entry.level == spdlog::level::debug && !m_show_debug) continue;
 
-                // Apply Text Filter
                 if (strlen(m_search_filter) > 0) {
                     if (entry.payload.find(m_search_filter) == std::string::npos) {
                         continue;
                     }
                 }
 
-                // Colorize Output
                 ImVec4 color(1.0f, 1.0f, 1.0f, 1.0f);
                 if (entry.level == spdlog::level::warn) {
-                    color = ImVec4(1.0f, 0.8f, 0.2f, 1.0f); // Yellow
+                    color = ImVec4(1.0f, 0.8f, 0.2f, 1.0f);
                 } else if (entry.level == spdlog::level::err || entry.level == spdlog::level::critical) {
-                    color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); // Red
+                    color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
                 } else if (entry.level == spdlog::level::debug || entry.level == spdlog::level::trace) {
-                    color = ImVec4(0.6f, 0.6f, 0.9f, 1.0f); // Soft Blue
+                    color = ImVec4(0.6f, 0.6f, 0.9f, 1.0f);
                 } else if (entry.level == spdlog::level::info) {
-                    color = ImVec4(0.4f, 0.9f, 0.4f, 1.0f); // Soft Green
+                    color = ImVec4(0.4f, 0.9f, 0.4f, 1.0f);
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -136,31 +136,72 @@ void DebugShell::render_log_pane() {
 
 void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(380, 240), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 1)", nullptr)) {
         if (!m_elf_loaded) {
-            ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded.");
+            ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
-            if (ImGui::Button("Load Sample ELF File")) {
-                m_elf_loaded = true;
-                m_loaded_file_path = "samples/hello_world.elf";
-                m_elf_entry_point = "0x0000000000400080";
-                m_elf_size_bytes = 1048576; // 1 MB
-                QUIN_LOG_INFO("Sample ELF loaded: {} (Entry: {})", m_loaded_file_path, m_elf_entry_point);
+            if (ImGui::Button("Load & Bootstrap Homebrew ELF")) {
+                // Construct synthetic ELF in memory to demonstrate Phase 1 bootstrap
+                std::vector<uint8_t> elf_buffer(sizeof(quin::loader::Elf64_Ehdr) + sizeof(quin::loader::Elf64_Phdr) + 64, 0);
+
+                auto* ehdr = reinterpret_cast<quin::loader::Elf64_Ehdr*>(elf_buffer.data());
+                ehdr->e_ident[0] = quin::loader::ELF_MAG0;
+                ehdr->e_ident[1] = quin::loader::ELF_MAG1;
+                ehdr->e_ident[2] = quin::loader::ELF_MAG2;
+                ehdr->e_ident[3] = quin::loader::ELF_MAG3;
+                ehdr->e_ident[4] = quin::loader::ELFCLASS64;
+                ehdr->e_ident[5] = quin::loader::ELFDATA2LSB;
+                ehdr->e_type = quin::loader::ET_EXEC;
+                ehdr->e_machine = quin::loader::EM_X86_64;
+                ehdr->e_entry = 0x0000000000400080ULL;
+                ehdr->e_phoff = sizeof(quin::loader::Elf64_Ehdr);
+                ehdr->e_phnum = 1;
+
+                auto* phdr = reinterpret_cast<quin::loader::Elf64_Phdr*>(elf_buffer.data() + sizeof(quin::loader::Elf64_Ehdr));
+                phdr->p_type = quin::loader::PT_LOAD;
+                phdr->p_flags = quin::loader::PF_R | quin::loader::PF_X;
+                phdr->p_offset = sizeof(quin::loader::Elf64_Ehdr) + sizeof(quin::loader::Elf64_Phdr);
+                phdr->p_vaddr = 0x0000000000400000ULL;
+                phdr->p_filesz = 32;
+                phdr->p_memsz = 4096;
+
+                uint8_t* payload = elf_buffer.data() + phdr->p_offset;
+                payload[0] = 0x90; // NOP
+                payload[1] = 0x90; // NOP
+                payload[2] = 0xC3; // RET
+
+                m_parsed_elf = quin::loader::SelfParser::parse_buffer(elf_buffer);
+                quin::loader::ElfLoader loader(m_address_space);
+                m_load_result = loader.load(m_parsed_elf);
+
+                if (m_load_result.success) {
+                    m_elf_loaded = true;
+                    m_loaded_file_path = "samples/homebrew_hello.elf";
+                    m_execution_engine.bootstrap(m_load_result.entry_point, m_load_result.stack_top);
+                }
             }
         } else {
             ImGui::Text("File Path: %s", m_loaded_file_path.c_str());
-            ImGui::Text("Entry Point: %s", m_elf_entry_point.c_str());
-            ImGui::Text("Size: %.2f MB", static_cast<double>(m_elf_size_bytes) / (1024.0 * 1024.0));
-            ImGui::Text("Architecture: x86-64 (PS5 ABI)");
+            ImGui::Text("Entry Point: 0x%016llX", m_load_result.entry_point);
+            ImGui::Text("Stack Top: 0x%016llX", m_load_result.stack_top);
+            ImGui::Text("Mapped Segments: %Z", m_load_result.loaded_segments_count);
+            ImGui::Text("Mapped Bytes: %.2f KB", static_cast<double>(m_load_result.total_mapped_bytes) / 1024.0);
             ImGui::Spacing();
-            ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.2f, 1.0f), "Status: Ready to Execute (Phase 1)");
+
+            const auto& regs = m_execution_engine.get_registers();
+            ImGui::Text("CPU State: RIP=0x%016llX | RSP=0x%016llX", regs.rip, regs.rsp);
 
             ImGui::Spacing();
+            if (ImGui::Button("Step Instruction")) {
+                m_execution_engine.step();
+            }
+            ImGui::SameLine();
             if (ImGui::Button("Unload Binary")) {
+                m_execution_engine.reset();
                 m_elf_loaded = false;
-                QUIN_LOG_INFO("Executable unloaded.");
+                QUIN_LOG_INFO("Executable unloaded from memory.");
             }
         }
     }
@@ -168,8 +209,8 @@ void DebugShell::render_elf_loader_pane() {
 }
 
 void DebugShell::render_telemetry_pane() {
-    ImGui::SetNextWindowPos(ImVec2(800, 290), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(380, 210), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(800, 370), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 190), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("System Telemetry", nullptr)) {
         ImGuiIO& io = ImGui::GetIO();
@@ -179,12 +220,10 @@ void DebugShell::render_telemetry_pane() {
 
         ImGui::Separator();
         ImGui::Text("Guest Memory Allocation:");
-        ImGui::Text("Mapped Virt Memory: 0 MB");
-        ImGui::Text("Active Guest Threads: 0");
-
-        ImGui::Separator();
-        ImGui::Text("Build Architecture: x86-64 Native");
-        ImGui::Text("Graphics API: OpenGL / ImGui");
+        ImGui::Text("Total Mapped Memory: %.2f MB",
+                    static_cast<double>(m_address_space.get_total_allocated_bytes()) / (1024.0 * 1024.0));
+        ImGui::Text("Allocated Memory Blocks: %Z", m_address_space.get_blocks().size());
+        ImGui::Text("Registered libkernel Stubs: %Z", m_kernel.get_stubs().size());
     }
     ImGui::End();
 }
@@ -192,7 +231,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 0 Foundation");
+        ImGui::Text("Quin PS5 Emulator — Phase 1 Executable Loader");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

@@ -18,8 +18,8 @@
 | Phase | Goal | Status |
 | :--- | :--- | :---: |
 | **Phase 0 — Foundations & Tooling** | Build system, CI matrix, clean-room policy, ImGui debug shell, logging | ✅ **Complete** |
-| **Phase 1 — Executable Loading** | SELF/ELF parser, guest address space allocator, libkernel stubs | 🟡 **Next** |
-| **Phase 2 — CPU Execution & Memory Model** | Multi-threaded execution harness, exception translation | ⏳ Pending |
+| **Phase 1 — Executable Loading** | SELF/ELF parser, guest address space allocator, libkernel stubs | ✅ **Complete** |
+| **Phase 2 — CPU Execution & Memory Model** | Multi-threaded execution harness, exception translation | 🟡 **Next** |
 | **Phase 3 — Syscalls & System Libraries** | FreeBSD syscall dispatch and core `libSce*` system libraries | ⏳ Pending |
 | **Phase 4 — Filesystem & Decompression** | VFS layer and Kraken/Oodle asset decompression pipeline | ⏳ Pending |
 | **Phase 5 — GPU Command Processing** | GNM command buffer parsing & Vulkan 1.3 pipeline translation | ⏳ Pending |

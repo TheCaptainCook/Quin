@@ -1,6 +1,12 @@
 #ifndef QUIN_GUI_DEBUG_SHELL_HPP
 #define QUIN_GUI_DEBUG_SHELL_HPP
 
+#include "memory/address_space.hpp"
+#include "kernel/libkernel.hpp"
+#include "cpu/execution_engine.hpp"
+#include "loader/self_parser.hpp"
+#include "loader/elf_loader.hpp"
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -29,11 +35,16 @@ private:
     bool m_auto_scroll{true};
     char m_search_filter[128]{""};
 
-    // Loaded ELF state (Phase 0 stub)
+    // Phase 1 Engine Subsystems
+    quin::memory::GuestAddressSpace m_address_space;
+    quin::kernel::LibKernel m_kernel;
+    quin::cpu::ExecutionEngine m_execution_engine;
+    quin::loader::ParsedElf m_parsed_elf;
+    quin::loader::LoadResult m_load_result;
+
+    // Loaded ELF state
     bool m_elf_loaded{false};
     std::string m_loaded_file_path;
-    std::string m_elf_entry_point;
-    size_t m_elf_size_bytes{0};
 
     // Dialog flags
     bool m_show_file_dialog{false};

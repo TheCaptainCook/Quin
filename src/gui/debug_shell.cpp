@@ -16,6 +16,13 @@ DebugShell::DebugShell()
     m_module_manager.register_all_modules();
     m_savedata_mgr.mount_savedata(quin::fs::SaveDataConfig{1000, "CUSA00001", 32 * 1024 * 1024});
     m_vulkan_backend.initialize();
+    m_audio_engine.initialize();
+
+    // Open default audio port for UI telemetry demonstration
+    quin::audio::AudioOutPortConfig config{};
+    config.channel_count = 2;
+    config.sample_rate = 48000;
+    m_audio_engine.open_port(config);
 
     // Demonstrate shader recompilation of synthetic vertex/pixel shaders
     uint32_t dummy_vs[] = { 0x7E000200, 0x7E020201, 0xBF810000 };
@@ -27,7 +34,7 @@ DebugShell::DebugShell()
     auto ps_res = m_shader_recompiler.recompile(dummy_ps, sizeof(dummy_ps), quin::gpu::shader::ShaderType::Pixel);
     if (ps_res.success) m_shader_cache.put(ps_res.shader);
 
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 6 Shader Recompiler.");
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 7 Audio Subsystem & Tempest 3D.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -41,6 +48,7 @@ void DebugShell::render() {
     render_vfs_pane();
     render_gpu_pane();
     render_shader_pane();
+    render_audio_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -165,7 +173,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 6)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 7)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -392,6 +400,26 @@ void DebugShell::render_shader_pane() {
     ImGui::End();
 }
 
+void DebugShell::render_audio_pane() {
+    ImGui::SetNextWindowPos(ImVec2(800, 1060), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Audio Subsystem & Tempest 3D (Phase 7)", nullptr)) {
+        ImGui::Text("Host Audio Backend: SDL2 Audio (Master 48 kHz)");
+        ImGui::Text("Audio Engine Status: %s", m_audio_engine.is_initialized() ? "Active" : "Inactive");
+        ImGui::Text("Open Audio Ports: %zu", m_audio_engine.get_open_ports_count());
+        ImGui::Text("Total PCM Samples Processed: %llu", m_audio_engine.get_total_samples_processed());
+        ImGui::Separator();
+
+        auto ports = m_audio_engine.get_active_ports();
+        for (const auto& p : ports) {
+            ImGui::Text("Port #%d | Rate: %u Hz | Channels: %u | Submitted: %llu",
+                        p.handle, p.config.sample_rate, p.config.channel_count, p.total_samples_submitted);
+        }
+    }
+    ImGui::End();
+}
+
 void DebugShell::render_telemetry_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 870), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 180), ImGuiCond_FirstUseEver);
@@ -415,7 +443,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 6 Shader Recompilation");
+        ImGui::Text("Quin PS5 Emulator — Phase 7 Audio Subsystem");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

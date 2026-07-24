@@ -14,6 +14,7 @@
 #include "gpu/vulkan_backend.hpp"
 #include "gpu/shader/shader_recompiler.hpp"
 #include "gpu/shader/shader_cache.hpp"
+#include "audio/audio_engine.hpp"
 
 #include <string>
 #include <vector>
@@ -37,6 +38,7 @@ private:
     void render_vfs_pane();
     void render_gpu_pane();
     void render_shader_pane();
+    void render_audio_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -58,6 +60,7 @@ private:
     quin::gpu::VulkanBackend m_vulkan_backend;
     quin::gpu::shader::ShaderRecompiler m_shader_recompiler;
     quin::gpu::shader::ShaderCache m_shader_cache;
+    quin::audio::AudioEngine m_audio_engine;
     quin::loader::ParsedElf m_parsed_elf;
     quin::loader::LoadResult m_load_result;
 

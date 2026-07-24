@@ -1,0 +1,19 @@
+# Build directories
+build/
+bin/
+lib/
+out/
+.vs/
+.cache/
+
+# User-specific / IDE files
+*.user
+*.suo
+*.userosset
+*.sln.docstates
+.vscode/
+.idea/
+
+# OS generated
+.DS_Store
+Thumbs.db

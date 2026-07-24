@@ -14,13 +14,17 @@ TEST_CASE("FreeBSD / PS5 Syscall Dispatcher", "[kernel][syscall]") {
     int64_t pid = dispatcher.dispatch(pid_args);
     REQUIRE(pid == 1001);
 
-    // 2. Dispatch SYS_open (#5)
+    // 2. Dispatch SYS_open (#5) with valid guest memory string
+    uint64_t path_vaddr = memory.mmap(0x0000000000400000ULL, 4096, quin::memory::PagePermission::ReadWrite);
+    std::string test_path = "/app0/eboot.bin";
+    REQUIRE(memory.write_bytes(path_vaddr, test_path.c_str(), test_path.size() + 1) == true);
+
     quin::kernel::SyscallArgs open_args{};
     open_args.num = quin::kernel::SYS_open;
-    open_args.arg1 = 0x0000000000401000ULL; // Path VAddr
-    open_args.arg2 = 0;                    // O_RDONLY
+    open_args.arg1 = path_vaddr; // Path VAddr
+    open_args.arg2 = 0;          // O_RDONLY
     int64_t fd = dispatcher.dispatch(open_args);
-    REQUIRE(fd == 3);
+    REQUIRE(fd >= 100);
 
     // 3. Dispatch SYS_clock_gettime (#232)
     uint64_t timespec_vaddr = memory.mmap(0, 4096, quin::memory::PagePermission::ReadWrite);
@@ -72,8 +76,6 @@ TEST_CASE("Execution Engine SYSCALL Instruction Execution & RAX Return", "[cpu][
 
     REQUIRE(engine.bootstrap(code_vaddr, 0x00007FFFF0000000ULL) == true);
 
-    // Set RAX to SYS_getpid (#20)
-    // Note: bootstrap sets regs, we step with RAX=20
-    engine.step(); // SYSCALL with RAX=0 (sys_exit returns 0)
+    engine.step();
     REQUIRE(engine.get_registers().rip == code_vaddr + 2);
 }

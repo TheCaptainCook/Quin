@@ -56,6 +56,9 @@ add_library(quin-core STATIC
     src/cpu/execution_engine.cpp
     src/cpu/thread_manager.cpp
     src/cpu/exception_handler.cpp
+    src/fs/vfs.cpp
+    src/fs/savedata.cpp
+    src/fs/decompression/kraken_decoder.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -96,6 +99,7 @@ if(BUILD_TESTING)
         tests/unit/test_elf_loader.cpp
         tests/unit/test_cpu_memory.cpp
         tests/unit/test_syscalls_modules.cpp
+        tests/unit/test_vfs_decompression.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

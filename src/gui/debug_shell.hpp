@@ -8,6 +8,8 @@
 #include "cpu/exception_handler.hpp"
 #include "loader/self_parser.hpp"
 #include "loader/elf_loader.hpp"
+#include "fs/vfs.hpp"
+#include "fs/savedata.hpp"
 
 #include <string>
 #include <vector>
@@ -28,6 +30,7 @@ private:
     void render_elf_loader_pane();
     void render_threads_pane();
     void render_syscalls_pane();
+    void render_vfs_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -44,6 +47,7 @@ private:
     quin::kernel::LibKernel m_kernel;
     quin::cpu::ExecutionEngine m_execution_engine;
     quin::kernel::ModuleManager m_module_manager;
+    quin::fs::SaveDataManager m_savedata_mgr;
     quin::loader::ParsedElf m_parsed_elf;
     quin::loader::LoadResult m_load_result;
 

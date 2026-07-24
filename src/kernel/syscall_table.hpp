@@ -2,6 +2,7 @@
 #define QUIN_KERNEL_SYSCALL_TABLE_HPP
 
 #include "memory/address_space.hpp"
+#include "fs/vfs.hpp"
 #include <cstdint>
 #include <string>
 #include <functional>
@@ -57,10 +58,14 @@ public:
     std::vector<SyscallInfo> get_registered_syscalls() const;
     uint64_t get_total_syscall_calls() const { return m_total_calls; }
 
+    quin::fs::VirtualFileSystem& get_vfs() { return m_vfs; }
+    const quin::fs::VirtualFileSystem& get_vfs() const { return m_vfs; }
+
 private:
     void register_defaults();
 
     quin::memory::GuestAddressSpace& m_memory;
+    quin::fs::VirtualFileSystem m_vfs;
     std::unordered_map<uint64_t, SyscallHandler> m_handlers;
     std::unordered_map<uint64_t, SyscallInfo> m_syscall_info;
     uint64_t m_total_calls{0};

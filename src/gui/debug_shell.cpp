@@ -1,6 +1,7 @@
 #include "gui/debug_shell.hpp"
 #include "core/logging.hpp"
 #include "cpu/exception_handler.hpp"
+#include "fs/decompression/kraken_decoder.hpp"
 #include <imgui.h>
 #include <cstring>
 #include <algorithm>
@@ -9,9 +10,11 @@ namespace quin::gui {
 
 DebugShell::DebugShell()
     : m_execution_engine(m_address_space, m_kernel),
-      m_module_manager(m_kernel, m_execution_engine.get_syscall_dispatcher()) {
+      m_module_manager(m_kernel, m_execution_engine.get_syscall_dispatcher()),
+      m_savedata_mgr(m_execution_engine.get_syscall_dispatcher().get_vfs()) {
     m_module_manager.register_all_modules();
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 3 Syscalls & System Modules.");
+    m_savedata_mgr.mount_savedata(quin::fs::SaveDataConfig{1000, "CUSA00001", 32 * 1024 * 1024});
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 4 VFS & Decompression.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -22,6 +25,7 @@ void DebugShell::render() {
     render_elf_loader_pane();
     render_threads_pane();
     render_syscalls_pane();
+    render_vfs_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -146,7 +150,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 3)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 4)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -286,6 +290,39 @@ void DebugShell::render_syscalls_pane() {
     ImGui::End();
 }
 
+void DebugShell::render_vfs_pane() {
+    ImGui::SetNextWindowPos(ImVec2(10, 660), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(780, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Virtual Filesystem & Storage (Phase 4)", nullptr)) {
+        const auto& vfs = m_execution_engine.get_syscall_dispatcher().get_vfs();
+        auto mounts = vfs.get_mount_points();
+        auto open_files = vfs.get_open_files();
+
+        ImGui::Text("Total Read: %.2f KB | Total Written: %.2f KB | Decompressed: %.2f KB",
+                    static_cast<double>(vfs.get_total_read_bytes()) / 1024.0,
+                    static_cast<double>(vfs.get_total_written_bytes()) / 1024.0,
+                    static_cast<double>(quin::fs::decompression::KrakenDecoder::get_total_decompressed_bytes()) / 1024.0);
+        ImGui::Separator();
+
+        if (ImGui::TreeNode("Active VFS Mount Points")) {
+            for (const auto& m : mounts) {
+                ImGui::Text("Prefix: '%s' -> Host: '%s'", m.virtual_prefix.c_str(), m.host_directory.c_str());
+            }
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Open File Handles")) {
+            for (const auto& f : open_files) {
+                ImGui::Text("FD: %d | Guest: '%s' | Size: %llu bytes | Pos: %llu",
+                            f.handle, f.virtual_path.c_str(), f.size, f.position);
+            }
+            ImGui::TreePop();
+        }
+    }
+    ImGui::End();
+}
+
 void DebugShell::render_telemetry_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 620), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 200), ImGuiCond_FirstUseEver);
@@ -309,7 +346,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 3 Syscalls & System Libraries");
+        ImGui::Text("Quin PS5 Emulator — Phase 4 Filesystem & Decompression");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

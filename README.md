@@ -1,6 +1,6 @@
 # 🎮 Quin — PlayStation 5 Console Emulator & Translation Layer
 
-> A high-performance, open-source PlayStation 5 (PS5) console emulator and x86-64 translation layer built with modern C++20, Vulkan 1.3 graphics, Tempest 3D Audio, and a visual Debug Shell UI.
+> A high-performance, open-source PlayStation 5 (PS5) console emulator and x86-64 translation layer built with modern C++20, Vulkan 1.3 graphics, Tempest 3D Audio, and an adaptive visual Debug Shell UI.
 
 ---
 
@@ -14,7 +14,7 @@ Think of Quin as a universal translator: PS5 games speak a specific "language" d
 - **🎮 Plug & Play DualSense Support**: Full native support for PS5 DualSense controllers, including RGB lightbar feedback, analog sticks, and rumble vibration.
 - **⚡ Smooth 60 FPS Engine**: Includes automatic frame-pacing, persistent shader caching (no stuttering on startup), and dynamic resolution scaling (FSR).
 - **🔊 Tempest 3D Audio**: Recreates spatial PS5 console sound through standard 48 kHz headphones or PC speakers.
-- **🖥️ Built-in Visual Control Panel**: An interactive debug shell allows you to load software, view performance graphs, track game compatibility, and inspect memory in real time.
+- **🖥️ Dynamic Responsive Control Panel**: An interactive debug shell workspace that dynamically resizes and rearranges to fit 100% of your screen resolution (from laptops to 4K monitors) with tabbed category organization.
 - **🔒 100% Clean-Room & Legal**: Built entirely from scratch using open-source FreeBSD standards and public graphics hardware manuals — zero proprietary console software required.
 
 ---
@@ -67,7 +67,11 @@ Think of Quin as a universal translator: PS5 games speak a specific "language" d
 - **FreeBSD / PS5 Syscall Architecture**: Syscall dispatcher handling standard system calls with full x86-64 ABI register mapping (`RAX`, `RDI`, `RSI`, `RDX`, `RCX`, `R8`, `R9`).
 - **`libSce*` System Library Stubs**: Implements module stubs for `libSceLibcInternal`, `libSceSystemService`, `libSceUserService`, `libSceAudioOut`, and `libScePad`.
 
-### 5. 📊 Compatibility & Performance Engine (`src/compat/`)
+### 5. 📊 Dynamic Responsive Debug Shell (`src/gui/`)
+- **Adaptive Screen Workspace**: Automatically calculates host window dimensions (`io.DisplaySize`) and scales all child windows, tables, and graphs dynamically to fit any display resolution without window clipping or overflow.
+- **Tabbed Subsystem Categories**: Tabbed navigation switching seamlessly between Main Dashboard, CPU & Kernel, GPU & Shaders, Audio & Input, Storage & VFS, and Compatibility Matrix.
+
+### 6. 📊 Compatibility & Performance Engine (`src/compat/`)
 - **Per-Title Status Tracker**: Built-in title database tracking compatibility ratings (`Boots`, `Menu`, `In-game`, `Playable`, `Perfect`).
 - **Automated Symbol Triage Logger**: Automatically logs missing system functions by frequency so developers know exactly what to implement next.
 - **Frame-Pacing Regulator**: Built-in 30 FPS, 60 FPS, and Unlocked frame pacing controls with dynamic resolution scaling (FSR2/3 headroom).

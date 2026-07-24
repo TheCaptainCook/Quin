@@ -17,6 +17,10 @@ DebugShell::DebugShell()
     m_savedata_mgr.mount_savedata(quin::fs::SaveDataConfig{1000, "CUSA00001", 32 * 1024 * 1024});
     m_vulkan_backend.initialize();
     m_audio_engine.initialize();
+    m_input_manager.initialize();
+
+    // Open default DualSense pad for UI telemetry demonstration
+    m_input_manager.open_pad(0);
 
     // Open default audio port for UI telemetry demonstration
     quin::audio::AudioOutPortConfig config{};
@@ -34,7 +38,7 @@ DebugShell::DebugShell()
     auto ps_res = m_shader_recompiler.recompile(dummy_ps, sizeof(dummy_ps), quin::gpu::shader::ShaderType::Pixel);
     if (ps_res.success) m_shader_cache.put(ps_res.shader);
 
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 7 Audio Subsystem & Tempest 3D.");
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 8 DualSense Input Subsystem.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -49,6 +53,7 @@ void DebugShell::render() {
     render_gpu_pane();
     render_shader_pane();
     render_audio_pane();
+    render_input_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -173,7 +178,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 7)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 8)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -420,6 +425,35 @@ void DebugShell::render_audio_pane() {
     ImGui::End();
 }
 
+void DebugShell::render_input_pane() {
+    ImGui::SetNextWindowPos(ImVec2(10, 1160), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(780, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Input Subsystem & DualSense (Phase 8)", nullptr)) {
+        ImGui::Text("Connected Controllers: %zu", m_input_manager.get_connected_pads_count());
+        ImGui::Separator();
+
+        auto pads = m_input_manager.get_all_pads();
+        for (const auto& pad : pads) {
+            ImGui::Text("DualSense Pad #%d | Status: Connected", pad.handle);
+            ImGui::Text("Buttons Mask: 0x%08X", pad.buttons);
+            ImGui::Text("Left Stick: (%d, %d) | Right Stick: (%d, %d)",
+                        pad.left_stick_x, pad.left_stick_y, pad.right_stick_x, pad.right_stick_y);
+            ImGui::Text("Lightbar RGB: (%u, %u, %u)", pad.lightbar_color.r, pad.lightbar_color.g, pad.lightbar_color.b);
+            ImGui::Spacing();
+
+            if (ImGui::Button("Test Trigger Cross (A)")) {
+                m_input_manager.set_button_state(pad.handle, quin::input::PAD_CROSS, true);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Test Trigger Circle (B)")) {
+                m_input_manager.set_button_state(pad.handle, quin::input::PAD_CIRCLE, true);
+            }
+        }
+    }
+    ImGui::End();
+}
+
 void DebugShell::render_telemetry_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 870), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 180), ImGuiCond_FirstUseEver);
@@ -443,7 +477,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 7 Audio Subsystem");
+        ImGui::Text("Quin PS5 Emulator — Phase 8 Input Subsystem");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

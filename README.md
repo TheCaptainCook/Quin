@@ -8,6 +8,8 @@
 
 - **Clean-Room Engineering**: Developed strictly using public specifications, FreeBSD syscall standards, and AMD RDNA2 ISA manuals.
 - **Cross-Platform Foundation**: Native C++20 CMake build supporting Windows, Linux, and macOS.
+- **DualSense HID & Input Subsystem**: Controller input layer mapping native DualSense HID reports and host SDL2 GameController / keyboard events into normalized `PadState` structures (buttons, analog sticks, L2/R2 triggers, lightbar RGB, vibration feedback).
+- **`libScePad` System Library**: Full module stubs (`scePadInit`, `scePadOpen`, `scePadReadState`, `scePadSetVibration`, `scePadSetLightBar`, `scePadClose`) connecting guest controller calls to the host input subsystem.
 - **Tempest 3D AudioTech & PCM Engine**: Audio output engine handling 48kHz multi-channel PCM sample streams with volume panning, channel routing, and SDL2 audio device streaming.
 - **`libSceAudioOut` System Library**: Complete module stubs (`sceAudioOutInit`, `sceAudioOutOpen`, `sceAudioOutOutput`, `sceAudioOutSetVolume`, `sceAudioOutClose`) connected to audio engine ring buffers.
 - **RDNA2 Shader Recompiler**: Clean-room RDNA2 ISA instruction decoder producing standard SPIR-V 1.5 binary modules (`OpEntryPoint`, `OpCapability Shader`, `OpMemoryModel Logical GLSL450`) for Vertex and Pixel (Fragment) shader stages.
@@ -18,11 +20,11 @@
 - **Kraken / Oodle Decompression**: Clean-room chunked byte-stream decoder handling compressed game asset streams and raw payload passthrough.
 - **SaveData Container Manager**: Isolated savedata container management per user ID and title ID (`/savedata/<user_id>/<title_id>/`).
 - **FreeBSD / PS5 Syscall Architecture**: Syscall dispatcher handling standard system calls (`SYS_open`, `SYS_read`, `SYS_write`, `SYS_clock_gettime`, `SYS_mmap`, `SYS_thr_self`, `SYS_dynlib_load_prx`) with ABI register mapping.
-- **`libSce*` System Modules**: Core stubs for `libSceLibcInternal`, `libSceSystemService`, `libSceUserService`, `libSceAudioOut`, and fallback stub warning logger.
+- **`libSce*` System Modules**: Core stubs for `libSceLibcInternal`, `libSceSystemService`, `libSceUserService`, `libSceAudioOut`, `libScePad`, and fallback stub warning logger.
 - **Multi-Threaded CPU & TLS Model**: Guest thread context management with thread-local storage (TLS) isolation and stack guard page protection.
 - **Native Exception Interception**: Windows Vectored Exception Handler (VEH) and POSIX signal translation capturing guest access violations without crashing the host process.
 - **Dynamic Guest Virtual Memory**: Page-aligned `mmap`, `munmap`, and `mprotect` memory allocation matching PS5 user-space layout conventions.
-- **Interactive ImGui Debug Shell**: Built-in ImGui workspace featuring real-time `spdlog` console streaming, ELF loader state, Threads & TLS inspector, Syscalls & Modules panel, VFS & Storage inspector, GPU & Vulkan panel, Shader Recompiler inspector, Audio & Tempest 3D panel, and telemetry.
+- **Interactive ImGui Debug Shell**: Built-in ImGui workspace featuring real-time `spdlog` console streaming, ELF loader state, Threads & TLS inspector, Syscalls & Modules panel, VFS & Storage inspector, GPU & Vulkan panel, Shader Recompiler inspector, Audio & Tempest 3D panel, DualSense Input panel, and telemetry.
 - **Modern Dependency Management**: Self-contained CMake FetchContent setup for `spdlog`, `Catch2`, `SDL2`, and `Dear ImGui`.
 
 ---
@@ -39,8 +41,8 @@
 | **Phase 5 — GPU Command Processing** | GNM command buffer parsing & Vulkan 1.3 pipeline translation | ✅ **Complete** |
 | **Phase 6 — Shader Recompilation** | RDNA2 ISA to SPIR-V shader translator | ✅ **Complete** |
 | **Phase 7 — Audio Subsystem** | Tempest 3D Audio & PCM audio backend routing | ✅ **Complete** |
-| **Phase 8 — Input Subsystem** | DualSense HID controller mapping | 🟡 **Next** |
-| **Phase 9 & 10 — Compatibility & Performance** | Title library expansion and high-framerate optimizations | ⏳ Ongoing |
+| **Phase 8 — Input Subsystem** | DualSense HID controller mapping | ✅ **Complete** |
+| **Phase 9 & 10 — Compatibility & Performance** | Title library expansion and high-framerate optimizations | 🟡 **Next / Ongoing** |
 
 Detailed roadmap available in [`docs/4. instructions/ps5-emultor.md`](docs/4.%20instructions/ps5-emultor.md).
 

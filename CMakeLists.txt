@@ -54,6 +54,7 @@ add_library(quin-core STATIC
     src/kernel/modules/sce_system_service.cpp
     src/kernel/modules/sce_user_service.cpp
     src/kernel/modules/sce_audio_out.cpp
+    src/kernel/modules/sce_pad.cpp
     src/cpu/execution_engine.cpp
     src/cpu/thread_manager.cpp
     src/cpu/exception_handler.cpp
@@ -66,6 +67,7 @@ add_library(quin-core STATIC
     src/gpu/shader/shader_recompiler.cpp
     src/gpu/shader/shader_cache.cpp
     src/audio/audio_engine.cpp
+    src/input/input_manager.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -110,6 +112,7 @@ if(BUILD_TESTING)
         tests/unit/test_gpu_vulkan.cpp
         tests/unit/test_shader_recompiler.cpp
         tests/unit/test_audio_subsystem.cpp
+        tests/unit/test_input_subsystem.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

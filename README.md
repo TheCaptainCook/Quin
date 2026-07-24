@@ -49,7 +49,7 @@
 | **Phase 9 — Compatibility Expansion** | Per-title status matrix, stub triage logger, regression test runner | ✅ **Complete** |
 | **Phase 10 — Performance & 60fps Pass** | Persistent Vulkan PSOs, async shader compiler, multi-threaded submit | ✅ **Complete** |
 
-Detailed roadmap available in [`docs/4. instructions/ps5-emultor.md`](docs/4.%20instructions/ps5-emultor.md) and [`compatibility.md`](compatibility.md).
+Compatibility matrix available in [`compatibility.md`](compatibility.md).
 
 ---
 
@@ -85,4 +85,3 @@ ctest --test-dir build -C Release --output-on-failure
 ## 📄 Licensing & Governance
 
 - Licensed under the **[BSD 3-Clause License](LICENSE)**.
-- Review our **[Clean-Room Policy](docs/3.%20others/clean-room-policy.md)** and **[Technical References](docs/3.%20others/references.md)**.

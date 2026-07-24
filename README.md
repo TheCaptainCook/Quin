@@ -126,14 +126,30 @@ ctest --test-dir build -C Release --output-on-failure
 
 ## ❓ Frequently Asked Questions (FAQ)
 
+#### Q: Where do I put my game files and executables?
+**A:** Place your game executable files (`.elf` or `.self`) and asset folders inside the local `./app0/` or `./samples/` directory within your Quin folder. The Virtual Filesystem (VFS) automatically maps guest path `/app0/` to this local folder.
+
+#### Q: How do I run a game or homebrew program in Quin?
+**A:** 
+1. Launch Quin by opening `./build/bin/Release/quin.exe`.
+2. In the top menu bar, click **File ➔ Load ELF / SELF...** (or press `Ctrl+O`).
+3. Select your `.elf` or `.self` game file.
+4. Go to **Emulation ➔ Run / Step** to bootstrap execution. You can monitor performance, graphics PSOs, audio ports, and controller button presses inside the interactive Debug Shell interface.
+
+#### Q: Where are game save files stored on my computer?
+**A:** Game save files are stored locally under `./savedata/<user_id>/<title_id>/` (for example, `./savedata/1000/CUSA00001/`). Each user profile and title ID gets an isolated save folder.
+
+#### Q: What file formats does Quin support?
+**A:** Quin supports 64-bit PS5 executable binaries (`.elf` and `.self`) along with compressed game assets via built-in Kraken and Oodle decompression pipelines.
+
 #### Q: Can Quin run commercial PS5 games?
 **A:** Quin is an open-source emulator project actively expanding compatibility. It currently runs homebrew software, technical test demos, and 2D/3D benchmarks while continuously improving title compatibility.
 
 #### Q: Do I need a real PS5 console or proprietary firmware files?
 **A:** No! Quin is developed strictly using **clean-room engineering**. It does not require proprietary Sony firmware or copyrighted console files to run homebrew binaries.
 
-#### Q: Can I use a controller other than DualSense?
-**A:** Yes! Quin includes full fallback support for standard PC gamepads (Xbox controllers, DualShock 4) and keyboard/mouse input via SDL2.
+#### Q: How do I configure my controller or keyboard controls?
+**A:** DualSense controllers are detected automatically when connected via USB or Bluetooth. You can test inputs, view analog stick positions, and trigger virtual buttons in the **Input Subsystem & DualSense (Phase 8)** inspector panel inside Quin. Standard Xbox gamepads, DualShock 4 controllers, and keyboards are also supported via SDL2.
 
 ---
 

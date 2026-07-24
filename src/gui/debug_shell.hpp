@@ -4,6 +4,7 @@
 #include "memory/address_space.hpp"
 #include "kernel/libkernel.hpp"
 #include "cpu/execution_engine.hpp"
+#include "cpu/exception_handler.hpp"
 #include "loader/self_parser.hpp"
 #include "loader/elf_loader.hpp"
 
@@ -24,6 +25,7 @@ private:
     void render_menu_bar();
     void render_log_pane();
     void render_elf_loader_pane();
+    void render_threads_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -35,7 +37,7 @@ private:
     bool m_auto_scroll{true};
     char m_search_filter[128]{""};
 
-    // Phase 1 Engine Subsystems
+    // Phase 1 & 2 Engine Subsystems
     quin::memory::GuestAddressSpace m_address_space;
     quin::kernel::LibKernel m_kernel;
     quin::cpu::ExecutionEngine m_execution_engine;

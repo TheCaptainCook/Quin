@@ -5,18 +5,18 @@
 #include <cstddef>
 #include <vector>
 #include <memory>
-#include <unordered_map>
+#include <mutex>
 
 namespace quin::memory {
 
 enum class PagePermission : uint32_t {
-    None    = 0,
-    Read    = 1 << 0,
-    Write   = 1 << 1,
-    Execute = 1 << 2,
-    ReadWrite = Read | Write,
+    None        = 0,
+    Read        = 1 << 0,
+    Write       = 1 << 1,
+    Execute     = 1 << 2,
+    ReadWrite   = Read | Write,
     ReadExecute = Read | Execute,
-    All = Read | Write | Execute
+    All         = Read | Write | Execute
 };
 
 struct MemoryBlock {
@@ -38,17 +38,26 @@ public:
     bool allocate(uint64_t guest_vaddr, size_t size, PagePermission permissions);
     bool free(uint64_t guest_vaddr);
 
+    // Phase 2 Memory Enhancements
+    bool mprotect(uint64_t guest_vaddr, size_t size, PagePermission permissions);
+    uint64_t mmap(uint64_t guest_vaddr, size_t size, PagePermission permissions, uint32_t flags = 0);
+    bool munmap(uint64_t guest_vaddr, size_t size);
+    bool allocate_guard_page(uint64_t guest_vaddr);
+
     bool write_bytes(uint64_t guest_vaddr, const void* src, size_t size);
     bool read_bytes(uint64_t guest_vaddr, void* dest, size_t size) const;
 
     void* get_host_pointer(uint64_t guest_vaddr) const;
+    const MemoryBlock* get_block_at(uint64_t guest_vaddr) const;
 
-    size_t get_total_allocated_bytes() const { return m_total_allocated; }
-    const std::vector<MemoryBlock>& get_blocks() const { return m_blocks; }
+    size_t get_total_allocated_bytes() const;
+    std::vector<MemoryBlock> get_blocks() const;
 
 private:
     std::vector<MemoryBlock> m_blocks;
     size_t m_total_allocated{0};
+    uint64_t m_next_auto_vaddr{0x0000000100000000ULL};
+    mutable std::mutex m_mutex;
 };
 
 } // namespace quin::memory

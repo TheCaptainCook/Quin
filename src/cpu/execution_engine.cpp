@@ -4,7 +4,13 @@
 namespace quin::cpu {
 
 ExecutionEngine::ExecutionEngine(quin::memory::GuestAddressSpace& memory, quin::kernel::LibKernel& kernel)
-    : m_memory(memory), m_kernel(kernel) {}
+    : m_memory(memory), m_kernel(kernel), m_thread_manager(memory) {
+    ExceptionHandler::initialize();
+}
+
+ExecutionEngine::~ExecutionEngine() {
+    ExceptionHandler::shutdown();
+}
 
 bool ExecutionEngine::bootstrap(uint64_t entry_point, uint64_t stack_top) {
     if (entry_point == 0) {
@@ -26,6 +32,10 @@ bool ExecutionEngine::bootstrap(uint64_t entry_point, uint64_t stack_top) {
     return true;
 }
 
+GuestThreadId ExecutionEngine::spawn_thread(const std::string& name, uint64_t entry_point, uint64_t arg) {
+    return m_thread_manager.create_thread(name, entry_point, arg);
+}
+
 void ExecutionEngine::step() {
     if (m_state != CpuState::Ready && m_state != CpuState::Running && m_state != CpuState::Paused) {
         return;
@@ -40,6 +50,13 @@ void ExecutionEngine::step() {
         return;
     }
 
+    // Check execute permission
+    const auto* block = m_memory.get_block_at(m_regs.rip);
+    if (block && (static_cast<uint32_t>(block->permissions) & static_cast<uint32_t>(quin::memory::PagePermission::Execute)) == 0) {
+        trigger_trap("Execute fault: Memory at RIP 0x" + fmt::format("{:016X}", m_regs.rip) + " does not have Execute permission");
+        return;
+    }
+
     uint8_t opcode = *static_cast<const uint8_t*>(host_code_ptr);
     m_executed_instructions_count++;
 
@@ -50,11 +67,12 @@ void ExecutionEngine::step() {
         m_state = CpuState::Exited;
         QUIN_LOG_INFO("ExecutionEngine: Guest entry point executed RET. Clean exit achieved.");
     } else if (opcode == 0x0F && static_cast<const uint8_t*>(host_code_ptr)[1] == 0x05) { // SYSCALL
-        QUIN_LOG_INFO("ExecutionEngine: SYSCALL instruction intercepted at RIP 0x{:016X} (RAX: {})",
-                      m_regs.rip, m_regs.rax);
+        QUIN_LOG_INFO("ExecutionEngine: SYSCALL instruction intercepted at RIP 0x{:016X} (RAX: {}, RDI: 0x{:X})",
+                      m_regs.rip, m_regs.rax, m_regs.rdi);
+        int64_t sys_ret = m_kernel.dispatch_symbol("syscall", m_regs.rax);
+        m_regs.rax = static_cast<uint64_t>(sys_ret);
         m_regs.rip += 2;
     } else {
-        // Safe instruction stepping harness: advance RIP and record execution
         m_regs.rip += 1;
     }
 
@@ -70,7 +88,6 @@ void ExecutionEngine::run() {
     QUIN_LOG_INFO("ExecutionEngine: Running guest code starting from RIP 0x{:016X}...", m_regs.rip);
     m_state = CpuState::Running;
 
-    // Run steps until completion, trap, or pause
     size_t step_count = 0;
     while (m_state == CpuState::Running && step_count < 10000) {
         step();

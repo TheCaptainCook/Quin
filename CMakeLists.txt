@@ -49,6 +49,8 @@ add_library(quin-core STATIC
     src/memory/address_space.cpp
     src/kernel/libkernel.cpp
     src/cpu/execution_engine.cpp
+    src/cpu/thread_manager.cpp
+    src/cpu/exception_handler.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -87,6 +89,7 @@ if(BUILD_TESTING)
     add_executable(quin-tests
         tests/unit/test_logging.cpp
         tests/unit/test_elf_loader.cpp
+        tests/unit/test_cpu_memory.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

@@ -1,5 +1,6 @@
 #include "gui/debug_shell.hpp"
 #include "core/logging.hpp"
+#include "cpu/exception_handler.hpp"
 #include <imgui.h>
 #include <cstring>
 #include <algorithm>
@@ -8,7 +9,7 @@ namespace quin::gui {
 
 DebugShell::DebugShell()
     : m_execution_engine(m_address_space, m_kernel) {
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 1 Loader & Memory Manager.");
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 2 CPU Execution & Memory Model.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -17,6 +18,7 @@ void DebugShell::render() {
     render_menu_bar();
     render_log_pane();
     render_elf_loader_pane();
+    render_threads_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -43,6 +45,9 @@ void DebugShell::render_menu_bar() {
                                            m_execution_engine.get_state() == quin::cpu::CpuState::Paused);
             if (ImGui::MenuItem("Run / Step", nullptr, false, can_run)) {
                 m_execution_engine.step();
+            }
+            if (ImGui::MenuItem("Spawn Guest Thread", nullptr, false, m_elf_loaded)) {
+                m_execution_engine.spawn_thread("worker_thread", 0x0000000000400080ULL, 0x1234);
             }
             if (ImGui::MenuItem("Pause", nullptr, false, m_execution_engine.get_state() == quin::cpu::CpuState::Running)) {
                 m_execution_engine.pause();
@@ -138,13 +143,12 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 1)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 2)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
             if (ImGui::Button("Load & Bootstrap Homebrew ELF")) {
-                // Construct synthetic ELF in memory to demonstrate Phase 1 bootstrap
-                std::vector<uint8_t> elf_buffer(sizeof(quin::loader::Elf64_Ehdr) + sizeof(quin::loader::Elf64_Phdr) + 64, 0);
+                std::vector<uint8_t> elf_buffer(256, 0);
 
                 auto* ehdr = reinterpret_cast<quin::loader::Elf64_Ehdr*>(elf_buffer.data());
                 ehdr->e_ident[0] = quin::loader::ELF_MAG0;
@@ -162,12 +166,12 @@ void DebugShell::render_elf_loader_pane() {
                 auto* phdr = reinterpret_cast<quin::loader::Elf64_Phdr*>(elf_buffer.data() + sizeof(quin::loader::Elf64_Ehdr));
                 phdr->p_type = quin::loader::PT_LOAD;
                 phdr->p_flags = quin::loader::PF_R | quin::loader::PF_X;
-                phdr->p_offset = sizeof(quin::loader::Elf64_Ehdr) + sizeof(quin::loader::Elf64_Phdr);
+                phdr->p_offset = 0;
                 phdr->p_vaddr = 0x0000000000400000ULL;
-                phdr->p_filesz = 32;
+                phdr->p_filesz = elf_buffer.size();
                 phdr->p_memsz = 4096;
 
-                uint8_t* payload = elf_buffer.data() + phdr->p_offset;
+                uint8_t* payload = elf_buffer.data() + 0x80;
                 payload[0] = 0x90; // NOP
                 payload[1] = 0x90; // NOP
                 payload[2] = 0xC3; // RET
@@ -186,7 +190,7 @@ void DebugShell::render_elf_loader_pane() {
             ImGui::Text("File Path: %s", m_loaded_file_path.c_str());
             ImGui::Text("Entry Point: 0x%016llX", m_load_result.entry_point);
             ImGui::Text("Stack Top: 0x%016llX", m_load_result.stack_top);
-            ImGui::Text("Mapped Segments: %Z", m_load_result.loaded_segments_count);
+            ImGui::Text("Mapped Segments: %zu", m_load_result.loaded_segments_count);
             ImGui::Text("Mapped Bytes: %.2f KB", static_cast<double>(m_load_result.total_mapped_bytes) / 1024.0);
             ImGui::Spacing();
 
@@ -208,9 +212,50 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::End();
 }
 
+void DebugShell::render_threads_pane() {
+    ImGui::SetNextWindowPos(ImVec2(10, 410), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(780, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Threads & TLS Manager (Phase 2)", nullptr)) {
+        const auto& thread_mgr = m_execution_engine.get_thread_manager();
+        auto active_threads = thread_mgr.get_active_threads_info();
+
+        ImGui::Text("Active Guest Threads: %zu", active_threads.size());
+        ImGui::Separator();
+
+        if (ImGui::BeginTable("ThreadsTable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("TID");
+            ImGui::TableSetupColumn("Name");
+            ImGui::TableSetupColumn("State");
+            ImGui::TableSetupColumn("RIP");
+            ImGui::TableSetupColumn("RSP");
+            ImGui::TableSetupColumn("TLS Base");
+            ImGui::TableHeadersRow();
+
+            for (const auto& t : active_threads) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0); ImGui::Text("%u", t.id);
+                ImGui::TableSetColumnIndex(1); ImGui::Text("%s", t.name.c_str());
+                ImGui::TableSetColumnIndex(2);
+                const char* state_str = "Unknown";
+                if (t.state == quin::cpu::ThreadState::Ready) state_str = "Ready";
+                else if (t.state == quin::cpu::ThreadState::Running) state_str = "Running";
+                else if (t.state == quin::cpu::ThreadState::Waiting) state_str = "Waiting";
+                else if (t.state == quin::cpu::ThreadState::Terminated) state_str = "Terminated";
+                ImGui::Text("%s", state_str);
+                ImGui::TableSetColumnIndex(3); ImGui::Text("0x%016llX", t.rip);
+                ImGui::TableSetColumnIndex(4); ImGui::Text("0x%016llX", t.rsp);
+                ImGui::TableSetColumnIndex(5); ImGui::Text("0x%016llX", t.tls_base);
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
+}
+
 void DebugShell::render_telemetry_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 370), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(450, 190), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 280), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("System Telemetry", nullptr)) {
         ImGuiIO& io = ImGui::GetIO();
@@ -222,8 +267,18 @@ void DebugShell::render_telemetry_pane() {
         ImGui::Text("Guest Memory Allocation:");
         ImGui::Text("Total Mapped Memory: %.2f MB",
                     static_cast<double>(m_address_space.get_total_allocated_bytes()) / (1024.0 * 1024.0));
-        ImGui::Text("Allocated Memory Blocks: %Z", m_address_space.get_blocks().size());
-        ImGui::Text("Registered libkernel Stubs: %Z", m_kernel.get_stubs().size());
+        ImGui::Text("Allocated Memory Blocks: %zu", m_address_space.get_blocks().size());
+        ImGui::Text("Registered libkernel Stubs: %zu", m_kernel.get_stubs().size());
+
+        ImGui::Separator();
+        ImGui::Text("Exception Handler:");
+        if (quin::cpu::ExceptionHandler::has_last_crash()) {
+            auto crash = quin::cpu::ExceptionHandler::get_last_crash();
+            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "CRASH: %s", crash.description.c_str());
+            ImGui::Text("RIP: 0x%016llX | FaultAddr: 0x%016llX", crash.instruction_pointer, crash.fault_address);
+        } else {
+            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "No exception faults recorded.");
+        }
     }
     ImGui::End();
 }
@@ -231,7 +286,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 1 Executable Loader");
+        ImGui::Text("Quin PS5 Emulator — Phase 2 CPU & Memory Model");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

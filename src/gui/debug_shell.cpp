@@ -16,7 +16,18 @@ DebugShell::DebugShell()
     m_module_manager.register_all_modules();
     m_savedata_mgr.mount_savedata(quin::fs::SaveDataConfig{1000, "CUSA00001", 32 * 1024 * 1024});
     m_vulkan_backend.initialize();
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 5 GPU Command Processing & Vulkan Backend.");
+
+    // Demonstrate shader recompilation of synthetic vertex/pixel shaders
+    uint32_t dummy_vs[] = { 0x7E000200, 0x7E020201, 0xBF810000 };
+    uint32_t dummy_ps[] = { 0x7E000202, 0x7E020203, 0xBF810000 };
+
+    auto vs_res = m_shader_recompiler.recompile(dummy_vs, sizeof(dummy_vs), quin::gpu::shader::ShaderType::Vertex);
+    if (vs_res.success) m_shader_cache.put(vs_res.shader);
+
+    auto ps_res = m_shader_recompiler.recompile(dummy_ps, sizeof(dummy_ps), quin::gpu::shader::ShaderType::Pixel);
+    if (ps_res.success) m_shader_cache.put(ps_res.shader);
+
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 6 Shader Recompiler.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -29,6 +40,7 @@ void DebugShell::render() {
     render_syscalls_pane();
     render_vfs_pane();
     render_gpu_pane();
+    render_shader_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -153,7 +165,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 5)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 6)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -346,6 +358,40 @@ void DebugShell::render_gpu_pane() {
     ImGui::End();
 }
 
+void DebugShell::render_shader_pane() {
+    ImGui::SetNextWindowPos(ImVec2(10, 910), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(780, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Shader Recompiler & SPIR-V Cache (Phase 6)", nullptr)) {
+        ImGui::Text("Total Recompiled Shaders: %llu", m_shader_recompiler.get_total_shaders_compiled());
+        ImGui::Text("Cached SPIR-V Shaders: %zu", m_shader_cache.get_cached_shader_count());
+        ImGui::Text("Shader Cache Hits: %llu | Misses: %llu", m_shader_cache.get_cache_hits(), m_shader_cache.get_cache_misses());
+        ImGui::Separator();
+
+        auto shaders = m_shader_cache.get_all_cached_shaders();
+        if (ImGui::BeginTable("ShadersTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("Hash Key");
+            ImGui::TableSetupColumn("Stage");
+            ImGui::TableSetupColumn("SPIR-V Words");
+            ImGui::TableSetupColumn("RDNA2 Bytes");
+            ImGui::TableHeadersRow();
+
+            for (const auto& sh : shaders) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0); ImGui::Text("0x%016llX", sh.hash);
+                ImGui::TableSetColumnIndex(1);
+                const char* stage_name = (sh.stage == quin::gpu::shader::ShaderType::Vertex) ? "Vertex" :
+                                         ((sh.stage == quin::gpu::shader::ShaderType::Pixel) ? "Pixel" : "Compute");
+                ImGui::Text("%s", stage_name);
+                ImGui::TableSetColumnIndex(2); ImGui::Text("%zu words", sh.spirv_code.size());
+                ImGui::TableSetColumnIndex(3); ImGui::Text("%zu bytes", sh.rdna2_bytecode.size());
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
+}
+
 void DebugShell::render_telemetry_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 870), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 180), ImGuiCond_FirstUseEver);
@@ -369,7 +415,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 5 GPU & Vulkan Translation");
+        ImGui::Text("Quin PS5 Emulator — Phase 6 Shader Recompilation");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

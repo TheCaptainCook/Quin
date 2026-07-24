@@ -12,6 +12,8 @@
 #include "fs/savedata.hpp"
 #include "gpu/gnm_parser.hpp"
 #include "gpu/vulkan_backend.hpp"
+#include "gpu/shader/shader_recompiler.hpp"
+#include "gpu/shader/shader_cache.hpp"
 
 #include <string>
 #include <vector>
@@ -34,6 +36,7 @@ private:
     void render_syscalls_pane();
     void render_vfs_pane();
     void render_gpu_pane();
+    void render_shader_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -53,6 +56,8 @@ private:
     quin::fs::SaveDataManager m_savedata_mgr;
     quin::gpu::GnmCmdParser m_gpu_parser;
     quin::gpu::VulkanBackend m_vulkan_backend;
+    quin::gpu::shader::ShaderRecompiler m_shader_recompiler;
+    quin::gpu::shader::ShaderCache m_shader_cache;
     quin::loader::ParsedElf m_parsed_elf;
     quin::loader::LoadResult m_load_result;
 

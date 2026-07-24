@@ -62,6 +62,8 @@ add_library(quin-core STATIC
     src/gpu/gnm_parser.cpp
     src/gpu/resource_translator.cpp
     src/gpu/vulkan_backend.cpp
+    src/gpu/shader/shader_recompiler.cpp
+    src/gpu/shader/shader_cache.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -104,6 +106,7 @@ if(BUILD_TESTING)
         tests/unit/test_syscalls_modules.cpp
         tests/unit/test_vfs_decompression.cpp
         tests/unit/test_gpu_vulkan.cpp
+        tests/unit/test_shader_recompiler.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

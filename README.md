@@ -8,10 +8,12 @@
 
 - **Clean-Room Engineering**: Developed strictly using public specifications, FreeBSD syscall standards, and AMD RDNA2 ISA manuals.
 - **Cross-Platform Foundation**: Native C++20 CMake build supporting Windows, Linux, and macOS.
+- **FreeBSD / PS5 Syscall Architecture**: Syscall dispatcher handling standard system calls (`SYS_open`, `SYS_read`, `SYS_write`, `SYS_clock_gettime`, `SYS_mmap`, `SYS_thr_self`, `SYS_dynlib_load_prx`) with ABI register mapping.
+- **`libSce*` System Modules**: Core stubs for `libSceLibcInternal`, `libSceSystemService`, `libSceUserService`, and fallback stub warning logger.
 - **Multi-Threaded CPU & TLS Model**: Guest thread context management with thread-local storage (TLS) isolation and stack guard page protection.
 - **Native Exception Interception**: Windows Vectored Exception Handler (VEH) and POSIX signal translation capturing guest access violations without crashing the host process.
 - **Dynamic Guest Virtual Memory**: Page-aligned `mmap`, `munmap`, and `mprotect` memory allocation matching PS5 user-space layout conventions.
-- **Interactive ImGui Debug Shell**: Built-in ImGui workspace featuring real-time `spdlog` console streaming, ELF loader state, Threads & TLS inspector, and telemetry.
+- **Interactive ImGui Debug Shell**: Built-in ImGui workspace featuring real-time `spdlog` console streaming, ELF loader state, Threads & TLS inspector, Syscalls & Modules panel, and telemetry.
 - **Modern Dependency Management**: Self-contained CMake FetchContent setup for `spdlog`, `Catch2`, `SDL2`, and `Dear ImGui`.
 
 ---
@@ -23,8 +25,8 @@
 | **Phase 0 — Foundations & Tooling** | Build system, CI matrix, clean-room policy, ImGui debug shell, logging | ✅ **Complete** |
 | **Phase 1 — Executable Loading** | SELF/ELF parser, guest address space allocator, libkernel stubs | ✅ **Complete** |
 | **Phase 2 — CPU Execution & Memory Model** | Multi-threaded execution harness, exception translation, TLS & guard pages | ✅ **Complete** |
-| **Phase 3 — Syscalls & System Libraries** | FreeBSD syscall dispatch and core `libSce*` system libraries | 🟡 **Next** |
-| **Phase 4 — Filesystem & Decompression** | VFS layer and Kraken/Oodle asset decompression pipeline | ⏳ Pending |
+| **Phase 3 — Syscalls & System Libraries** | FreeBSD syscall dispatch and core `libSce*` system libraries | ✅ **Complete** |
+| **Phase 4 — Filesystem & Decompression** | VFS layer and Kraken/Oodle asset decompression pipeline | 🟡 **Next** |
 | **Phase 5 — GPU Command Processing** | GNM command buffer parsing & Vulkan 1.3 pipeline translation | ⏳ Pending |
 | **Phase 6 — Shader Recompilation** | RDNA2 ISA to SPIR-V shader translator | ⏳ Pending |
 | **Phase 7 — Audio Subsystem** | Tempest 3D Audio & PCM audio backend routing | ⏳ Pending |

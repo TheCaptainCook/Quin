@@ -8,8 +8,10 @@
 namespace quin::gui {
 
 DebugShell::DebugShell()
-    : m_execution_engine(m_address_space, m_kernel) {
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 2 CPU Execution & Memory Model.");
+    : m_execution_engine(m_address_space, m_kernel),
+      m_module_manager(m_kernel, m_execution_engine.get_syscall_dispatcher()) {
+    m_module_manager.register_all_modules();
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 3 Syscalls & System Modules.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -19,6 +21,7 @@ void DebugShell::render() {
     render_log_pane();
     render_elf_loader_pane();
     render_threads_pane();
+    render_syscalls_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -143,7 +146,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 2)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 3)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -253,9 +256,39 @@ void DebugShell::render_threads_pane() {
     ImGui::End();
 }
 
-void DebugShell::render_telemetry_pane() {
+void DebugShell::render_syscalls_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 370), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(450, 280), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Syscalls & System Modules (Phase 3)", nullptr)) {
+        const auto& dispatcher = m_execution_engine.get_syscall_dispatcher();
+        auto syscalls = dispatcher.get_registered_syscalls();
+
+        ImGui::Text("Total Syscalls Dispatched: %llu", dispatcher.get_total_syscall_calls());
+        ImGui::Text("Registered Syscalls Count: %zu", syscalls.size());
+        ImGui::Separator();
+
+        if (ImGui::BeginTable("SyscallsTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("Syscall #");
+            ImGui::TableSetupColumn("Name");
+            ImGui::TableSetupColumn("Call Count");
+            ImGui::TableHeadersRow();
+
+            for (const auto& sys : syscalls) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0); ImGui::Text("#%llu", sys.num);
+                ImGui::TableSetColumnIndex(1); ImGui::Text("%s", sys.name.c_str());
+                ImGui::TableSetColumnIndex(2); ImGui::Text("%llu", sys.call_count);
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
+}
+
+void DebugShell::render_telemetry_pane() {
+    ImGui::SetNextWindowPos(ImVec2(800, 620), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 200), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("System Telemetry", nullptr)) {
         ImGuiIO& io = ImGui::GetIO();
@@ -269,16 +302,6 @@ void DebugShell::render_telemetry_pane() {
                     static_cast<double>(m_address_space.get_total_allocated_bytes()) / (1024.0 * 1024.0));
         ImGui::Text("Allocated Memory Blocks: %zu", m_address_space.get_blocks().size());
         ImGui::Text("Registered libkernel Stubs: %zu", m_kernel.get_stubs().size());
-
-        ImGui::Separator();
-        ImGui::Text("Exception Handler:");
-        if (quin::cpu::ExceptionHandler::has_last_crash()) {
-            auto crash = quin::cpu::ExceptionHandler::get_last_crash();
-            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "CRASH: %s", crash.description.c_str());
-            ImGui::Text("RIP: 0x%016llX | FaultAddr: 0x%016llX", crash.instruction_pointer, crash.fault_address);
-        } else {
-            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "No exception faults recorded.");
-        }
     }
     ImGui::End();
 }
@@ -286,7 +309,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 2 CPU & Memory Model");
+        ImGui::Text("Quin PS5 Emulator — Phase 3 Syscalls & System Libraries");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

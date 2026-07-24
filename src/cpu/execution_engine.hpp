@@ -3,6 +3,7 @@
 
 #include "memory/address_space.hpp"
 #include "kernel/libkernel.hpp"
+#include "kernel/syscall_table.hpp"
 #include "cpu/thread_manager.hpp"
 #include "cpu/exception_handler.hpp"
 #include <cstdint>
@@ -39,11 +40,15 @@ public:
     ThreadManager& get_thread_manager() { return m_thread_manager; }
     const ThreadManager& get_thread_manager() const { return m_thread_manager; }
 
+    quin::kernel::SyscallDispatcher& get_syscall_dispatcher() { return m_syscalls; }
+    const quin::kernel::SyscallDispatcher& get_syscall_dispatcher() const { return m_syscalls; }
+
 private:
     void trigger_trap(const std::string& reason);
 
     quin::memory::GuestAddressSpace& m_memory;
     quin::kernel::LibKernel& m_kernel;
+    quin::kernel::SyscallDispatcher m_syscalls;
     ThreadManager m_thread_manager;
 
     CpuRegisters m_regs{};

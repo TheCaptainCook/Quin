@@ -48,6 +48,11 @@ add_library(quin-core STATIC
     src/loader/elf_loader.cpp
     src/memory/address_space.cpp
     src/kernel/libkernel.cpp
+    src/kernel/syscall_table.cpp
+    src/kernel/module_manager.cpp
+    src/kernel/modules/sce_libc.cpp
+    src/kernel/modules/sce_system_service.cpp
+    src/kernel/modules/sce_user_service.cpp
     src/cpu/execution_engine.cpp
     src/cpu/thread_manager.cpp
     src/cpu/exception_handler.cpp
@@ -90,6 +95,7 @@ if(BUILD_TESTING)
         tests/unit/test_logging.cpp
         tests/unit/test_elf_loader.cpp
         tests/unit/test_cpu_memory.cpp
+        tests/unit/test_syscalls_modules.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

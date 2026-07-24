@@ -4,7 +4,7 @@
 namespace quin::cpu {
 
 ExecutionEngine::ExecutionEngine(quin::memory::GuestAddressSpace& memory, quin::kernel::LibKernel& kernel)
-    : m_memory(memory), m_kernel(kernel), m_thread_manager(memory) {
+    : m_memory(memory), m_kernel(kernel), m_syscalls(memory), m_thread_manager(memory) {
     ExceptionHandler::initialize();
 }
 
@@ -69,7 +69,18 @@ void ExecutionEngine::step() {
     } else if (opcode == 0x0F && static_cast<const uint8_t*>(host_code_ptr)[1] == 0x05) { // SYSCALL
         QUIN_LOG_INFO("ExecutionEngine: SYSCALL instruction intercepted at RIP 0x{:016X} (RAX: {}, RDI: 0x{:X})",
                       m_regs.rip, m_regs.rax, m_regs.rdi);
-        int64_t sys_ret = m_kernel.dispatch_symbol("syscall", m_regs.rax);
+        
+        quin::kernel::SyscallArgs args{
+            m_regs.rax, // Syscall number
+            m_regs.rdi, // Arg1
+            m_regs.rsi, // Arg2
+            m_regs.rdx, // Arg3
+            m_regs.r10, // Arg4
+            m_regs.r8,  // Arg5
+            m_regs.r9   // Arg6
+        };
+
+        int64_t sys_ret = m_syscalls.dispatch(args);
         m_regs.rax = static_cast<uint64_t>(sys_ret);
         m_regs.rip += 2;
     } else {

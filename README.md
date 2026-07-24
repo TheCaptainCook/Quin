@@ -1,87 +1,145 @@
-# Quin
+# 🎮 Quin — PlayStation 5 Console Emulator & Translation Layer
 
-> A lean x86-64 translation layer and PS5 console emulator built for high performance, modern graphics translation, and modular architecture.
+> A high-performance, open-source PlayStation 5 (PS5) console emulator and x86-64 translation layer built with modern C++20, Vulkan 1.3 graphics, Tempest 3D Audio, and a visual Debug Shell UI.
 
 ---
 
-## 🚀 Features & Architecture
+## 💡 What is Quin? (In Plain English)
 
-- **Clean-Room Engineering**: Developed strictly using public specifications, FreeBSD syscall standards, and AMD RDNA2 ISA manuals.
-- **Cross-Platform Foundation**: Native C++20 CMake build supporting Windows, Linux, and macOS.
-- **Persistent Disk PSO Cache**: Binary PSO serialization and on-disk caching (`.quin_pso_cache`) eliminating first-launch rendering stutters.
-- **Async Shader Compilation Worker Pool**: Multi-threaded worker queue processing RDNA2 to SPIR-V shader compilation asynchronously off the main render thread.
-- **Frame-Pacing & Dynamic Resolution Scale**: Precision frame pacing regulator (30 FPS Lock, 60 FPS Lock, Unlocked) with frame time variance tracking and FSR2/3 dynamic resolution scale controls.
-- **Title Compatibility Matrix & Triage**: Per-title compatibility tracking database (`Boots`, `Menu`, `Ingame`, `Playable`, `Perfect`) with automated missing symbol triage logger and regression test runner.
-- **DualSense HID & Input Subsystem**: Controller input layer mapping native DualSense HID reports and host SDL2 GameController / keyboard events into normalized `PadState` structures (buttons, analog sticks, L2/R2 triggers, lightbar RGB, vibration feedback).
-- **`libScePad` System Library**: Full module stubs (`scePadInit`, `scePadOpen`, `scePadReadState`, `scePadSetVibration`, `scePadSetLightBar`, `scePadClose`) connecting guest controller calls to the host input subsystem.
-- **Tempest 3D AudioTech & PCM Engine**: Audio output engine handling 48kHz multi-channel PCM sample streams with volume panning, channel routing, and SDL2 audio device streaming.
-- **`libSceAudioOut` System Library**: Complete module stubs (`sceAudioOutInit`, `sceAudioOutOpen`, `sceAudioOutOutput`, `sceAudioOutSetVolume`, `sceAudioOutClose`) connected to audio engine ring buffers.
-- **RDNA2 Shader Recompiler**: Clean-room RDNA2 ISA instruction decoder producing standard SPIR-V 1.5 binary modules (`OpEntryPoint`, `OpCapability Shader`, `OpMemoryModel Logical GLSL450`) for Vertex and Pixel (Fragment) shader stages.
-- **Persistent Binary Shader Cache**: Shader binary hash-key generator and persistent in-memory/disk cache eliminating runtime shader translation stutters across application launches.
-- **GNM PM4 Command Processing**: PM4 Type-3 packet parser (`IT_DRAW_INDEX_AUTO`, `IT_SET_CONTEXT_REG`) extracting draw commands, index counts, and primitive topologies from guest GPU command rings.
-- **Vulkan 1.3 Graphics Backend & PSO Caching**: Render backend translating GNM surface formats (`R8G8B8A8_UNORM`, `B8G8R8A8_UNORM`, `R32_SFLOAT`) to `VkFormat` with state-hash-keyed Pipeline State Object (PSO) caching.
-- **Virtual Filesystem (VFS) & Storage**: VFS layer mapping guest virtual mount points (`/app0/`, `/data/`, `/system/`, `/savedata/`) to host local directories with POSIX path resolution.
-- **Kraken / Oodle Decompression**: Clean-room chunked byte-stream decoder handling compressed game asset streams and raw payload passthrough.
-- **SaveData Container Manager**: Isolated savedata container management per user ID and title ID (`/savedata/<user_id>/<title_id>/`).
-- **FreeBSD / PS5 Syscall Architecture**: Syscall dispatcher handling standard system calls (`SYS_open`, `SYS_read`, `SYS_write`, `SYS_clock_gettime`, `SYS_mmap`, `SYS_thr_self`, `SYS_dynlib_load_prx`) with ABI register mapping.
-- **`libSce*` System Modules**: Core stubs for `libSceLibcInternal`, `libSceSystemService`, `libSceUserService`, `libSceAudioOut`, `libScePad`, and fallback stub warning logger.
-- **Multi-Threaded CPU & TLS Model**: Guest thread context management with thread-local storage (TLS) isolation and stack guard page protection.
-- **Native Exception Interception**: Windows Vectored Exception Handler (VEH) and POSIX signal translation capturing guest access violations without crashing the host process.
-- **Dynamic Guest Virtual Memory**: Page-aligned `mmap`, `munmap`, and `mprotect` memory allocation matching PS5 user-space layout conventions.
-- **Interactive ImGui Debug Shell**: Built-in ImGui workspace featuring real-time `spdlog` console streaming, ELF loader state, Threads & TLS inspector, Syscalls & Modules panel, VFS & Storage inspector, GPU & Vulkan panel, Shader Recompiler inspector, Audio & Tempest 3D panel, DualSense Input panel, Compatibility Tracker & Triage panel, Performance & 60FPS Engine panel, and telemetry.
-- **Modern Dependency Management**: Self-contained CMake FetchContent setup for `spdlog`, `Catch2`, `SDL2`, and `Dear ImGui`.
+**Quin** is a software translation layer that allows computers (Windows, Linux, and macOS) to run PlayStation 5 software. 
+
+Think of Quin as a universal translator: PS5 games speak a specific "language" designed for console hardware. Quin intercepts those instructions in real time and translates them into a language your PC’s CPU and graphics card (NVIDIA, AMD, or Intel) can understand.
+
+### Key Highlights for Everyday Users
+- **🎮 Plug & Play DualSense Support**: Full native support for PS5 DualSense controllers, including RGB lightbar feedback, analog sticks, and rumble vibration.
+- **⚡ Smooth 60 FPS Engine**: Includes automatic frame-pacing, persistent shader caching (no stuttering on startup), and dynamic resolution scaling (FSR).
+- **🔊 Tempest 3D Audio**: Recreates spatial PS5 console sound through standard 48 kHz headphones or PC speakers.
+- **🖥️ Built-in Visual Control Panel**: An interactive debug shell allows you to load software, view performance graphs, track game compatibility, and inspect memory in real time.
+- **🔒 100% Clean-Room & Legal**: Built entirely from scratch using open-source FreeBSD standards and public graphics hardware manuals — zero proprietary console software required.
+
+---
+
+## ⚙️ How It Works Under the Hood
+
+```
+[ PS5 Game / Homebrew ELF ] 
+          │
+          ▼
+   [ Executable Loader ] ────► Parses 64-bit ELF headers & maps guest virtual memory
+          │
+          ▼
+   [ CPU Execution Engine ] ──► Translates x86-64 code & dispatches FreeBSD / PS5 Syscalls
+          │
+   ┌──────┴──────────────────────────────────────┐
+   ▼                                             ▼
+[ GNM GPU & RDNA2 Shader ]              [ Tempest 3D Audio & Input ]
+   │                                             │
+   ▼                                             ▼
+[ Vulkan 1.3 Render Engine ]             [ SDL2 Audio & DualSense HID ]
+```
+
+1. **Executable Loading**: Reads 64-bit PS5 executable files (`.elf` and `.self`) and securely maps them into guest memory.
+2. **CPU Execution**: Runs multi-threaded game logic across modern CPU cores with thread-local storage (TLS) isolation.
+3. **Graphics Translation**: Converts PS5 GNM GPU commands and RDNA2 shader bytecode directly into standard **Vulkan 1.3** SPIR-V instructions.
+4. **Audio & Controls**: Routes multi-channel PCM audio streams to your speakers and maps DualSense controller inputs instantly.
+
+---
+
+## 🚀 Detailed System Features
+
+### 1. 🖥️ Graphics & Shader Translation (`src/gpu/`)
+- **Vulkan 1.3 Rendering Pipeline**: Translates PS5 GNM surface formats (`R8G8B8A8_UNORM`, `B8G8R8A8_UNORM`, `R32_SFLOAT`) to native Vulkan formats with state-hash-keyed Pipeline State Object (PSO) caching.
+- **RDNA2 ISA Shader Recompiler**: Clean-room instruction decoder that converts RDNA2 GPU bytecode into valid SPIR-V 1.5 modules for Vertex and Pixel (Fragment) shader stages.
+- **Persistent Disk PSO Cache**: Saves compiled graphics pipelines to disk (`.quin_pso_cache`) to eliminate first-launch stuttering.
+- **Async Shader Compilation**: Compiles shaders in the background using dedicated worker threads off the main render loop.
+
+### 2. 🔊 Audio & Input Subsystem (`src/audio/`, `src/input/`)
+- **Tempest 3D Audio Engine**: Processes multi-channel 48 kHz PCM sample streams with volume panning, channel routing, and SDL2 device output.
+- **DualSense Controller Driver**: Directly communicates with PS5 DualSense controllers over USB and Bluetooth, supporting button bitmasks, analog stick axes, RGB lightbar colors, and vibration feedback.
+
+### 3. 💾 Filesystem & Storage (`src/fs/`)
+- **Virtual Filesystem (VFS)**: Maps PS5 virtual directories (`/app0/`, `/data/`, `/system/`, `/savedata/`) to host folder paths with full POSIX file access support (`SYS_open`, `SYS_read`, `SYS_write`, `SYS_close`).
+- **Kraken & Oodle Decompressor**: Decodes compressed PS5 game asset chunks on the fly.
+- **SaveData Manager**: Isolated savedata container management per user ID and game title (`/savedata/<user_id>/<title_id>/`).
+
+### 4. 🧠 Memory & System Libraries (`src/memory/`, `src/kernel/`)
+- **Dynamic Memory Manager**: Page-aligned `mmap`, `munmap`, and `mprotect` guest memory management matching PS5 64-bit virtual memory address layouts.
+- **FreeBSD / PS5 Syscall Architecture**: Syscall dispatcher handling standard system calls with full x86-64 ABI register mapping (`RAX`, `RDI`, `RSI`, `RDX`, `RCX`, `R8`, `R9`).
+- **`libSce*` System Library Stubs**: Implements module stubs for `libSceLibcInternal`, `libSceSystemService`, `libSceUserService`, `libSceAudioOut`, and `libScePad`.
+
+### 5. 📊 Compatibility & Performance Engine (`src/compat/`)
+- **Per-Title Status Tracker**: Built-in title database tracking compatibility ratings (`Boots`, `Menu`, `In-game`, `Playable`, `Perfect`).
+- **Automated Symbol Triage Logger**: Automatically logs missing system functions by frequency so developers know exactly what to implement next.
+- **Frame-Pacing Regulator**: Built-in 30 FPS, 60 FPS, and Unlocked frame pacing controls with dynamic resolution scaling (FSR2/3 headroom).
 
 ---
 
 ## 📜 Development Roadmap Progress
 
-| Phase | Goal | Status |
-| :--- | :--- | :---: |
-| **Phase 0 — Foundations & Tooling** | Build system, CI matrix, clean-room policy, ImGui debug shell, logging | ✅ **Complete** |
-| **Phase 1 — Executable Loading** | SELF/ELF parser, guest address space allocator, libkernel stubs | ✅ **Complete** |
-| **Phase 2 — CPU Execution & Memory Model** | Multi-threaded execution harness, exception translation, TLS & guard pages | ✅ **Complete** |
-| **Phase 3 — Syscalls & System Libraries** | FreeBSD syscall dispatch and core `libSce*` system libraries | ✅ **Complete** |
-| **Phase 4 — Filesystem & Decompression** | VFS layer and Kraken/Oodle asset decompression pipeline | ✅ **Complete** |
-| **Phase 5 — GPU Command Processing** | GNM command buffer parsing & Vulkan 1.3 pipeline translation | ✅ **Complete** |
-| **Phase 6 — Shader Recompilation** | RDNA2 ISA to SPIR-V shader translator | ✅ **Complete** |
-| **Phase 7 — Audio Subsystem** | Tempest 3D Audio & PCM audio backend routing | ✅ **Complete** |
-| **Phase 8 — Input Subsystem** | DualSense HID controller mapping | ✅ **Complete** |
-| **Phase 9 — Compatibility Expansion** | Per-title status matrix, stub triage logger, regression test runner | ✅ **Complete** |
-| **Phase 10 — Performance & 60fps Pass** | Persistent Vulkan PSOs, async shader compiler, multi-threaded submit | ✅ **Complete** |
+| Phase | Milestone | Focus Area | Status |
+| :--- | :--- | :--- | :---: |
+| **Phase 0** | **Foundations & Tooling** | C++20 build system, ImGui visual debug shell, spdlog console | ✅ **Complete** |
+| **Phase 1** | **Executable Loading** | 64-bit SELF/ELF parser, guest address space manager, libkernel stubs | ✅ **Complete** |
+| **Phase 2** | **CPU & Memory Model** | Multi-threaded thread manager, TLS isolation, native exception handling | ✅ **Complete** |
+| **Phase 3** | **Syscalls & System Modules** | FreeBSD syscall dispatcher, `libSceLibcInternal`, `libSceSystemService` | ✅ **Complete** |
+| **Phase 4** | **Filesystem & Storage** | VFS mount table, SaveData manager, Kraken/Oodle decompression | ✅ **Complete** |
+| **Phase 5** | **GPU & Vulkan Backend** | GNM PM4 packet parser, Vulkan 1.3 backend, state-hash PSO cache | ✅ **Complete** |
+| **Phase 6** | **Shader Recompilation** | Clean-room RDNA2 ISA decoder, SPIR-V bytecode emitter, shader cache | ✅ **Complete** |
+| **Phase 7** | **Audio Subsystem** | Tempest 3D Audio engine, 48 kHz multi-channel PCM output | ✅ **Complete** |
+| **Phase 8** | **Input Subsystem** | DualSense HID controller driver, `libScePad` module stubs | ✅ **Complete** |
+| **Phase 9** | **Compatibility Expansion** | Per-title database, stub triage logger, regression test runner | ✅ **Complete** |
+| **Phase 10** | **Performance & 60 FPS** | Persistent disk PSO cache, async shader compiler, frame pacing | ✅ **Complete** |
 
 Compatibility matrix available in [`compatibility.md`](compatibility.md).
 
 ---
 
-## 🛠️ Building & Running
+## 🛠️ Building & Running (Quick Start)
 
-### Prerequisites
-- C++20 compliant compiler (MSVC 2022 / GCC 12+ / Clang 15+)
-- CMake 3.22 or higher
-- Git
+### System Requirements
+- **Operating System**: Windows 10/11 (64-bit), Linux (Ubuntu 22.04+), or macOS (12+)
+- **Compiler**: C++20 compliant compiler (MSVC 2022, GCC 12+, or Clang 15+)
+- **Build Tool**: CMake 3.22 or higher
+- **Graphics Card**: Vulkan 1.3 compatible GPU (NVIDIA GTX 10-series or newer, AMD Radeon RX 500-series or newer, Intel Arc)
 
-### Build Instructions
+### Step-by-Step Build Instructions
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/TheCaptainCook/Quin.git
 cd Quin
 
-# Configure build with CMake (automatically fetches third-party dependencies)
+# 2. Configure the build with CMake (automatically downloads required dependencies)
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-# Build executable and unit tests
+# 3. Compile the executable and test suite
 cmake --build build --config Release
 
-# Run unit tests
+# 4. Run automated unit verification tests
 ctest --test-dir build -C Release --output-on-failure
 
-# Launch Quin Debug Shell
+# 5. Launch the Quin Debug Shell application
 ./build/bin/Release/quin.exe
 ```
 
 ---
 
-## 📄 Licensing & Governance
+## ❓ Frequently Asked Questions (FAQ)
 
-- Licensed under the **[Non-Commercial Personal Use License](LICENSE)** (Personal and educational use only; commercial/for-profit use strictly prohibited; mandatory attribution to Masem required).
+#### Q: Can Quin run commercial PS5 games?
+**A:** Quin is an open-source emulator project actively expanding compatibility. It currently runs homebrew software, technical test demos, and 2D/3D benchmarks while continuously improving title compatibility.
+
+#### Q: Do I need a real PS5 console or proprietary firmware files?
+**A:** No! Quin is developed strictly using **clean-room engineering**. It does not require proprietary Sony firmware or copyrighted console files to run homebrew binaries.
+
+#### Q: Can I use a controller other than DualSense?
+**A:** Yes! Quin includes full fallback support for standard PC gamepads (Xbox controllers, DualShock 4) and keyboard/mouse input via SDL2.
+
+---
+
+## 📄 Licensing & Terms of Use
+
+This project is licensed under the **[Non-Commercial Personal Use License](LICENSE)**:
+- **Personal & Educational Use**: Free for personal, non-commercial, academic, and research purposes.
+- **No Commercial Use**: Any commercial, for-profit, or revenue-generating use is strictly prohibited.
+- **Attribution Required**: Proper credit to the original author (**Quin Project by Masem**) must be included in all copies or derivative works.

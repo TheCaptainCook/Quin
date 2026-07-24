@@ -59,6 +59,9 @@ add_library(quin-core STATIC
     src/fs/vfs.cpp
     src/fs/savedata.cpp
     src/fs/decompression/kraken_decoder.cpp
+    src/gpu/gnm_parser.cpp
+    src/gpu/resource_translator.cpp
+    src/gpu/vulkan_backend.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -100,6 +103,7 @@ if(BUILD_TESTING)
         tests/unit/test_cpu_memory.cpp
         tests/unit/test_syscalls_modules.cpp
         tests/unit/test_vfs_decompression.cpp
+        tests/unit/test_gpu_vulkan.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

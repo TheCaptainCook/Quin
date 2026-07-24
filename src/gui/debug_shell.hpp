@@ -10,6 +10,8 @@
 #include "loader/elf_loader.hpp"
 #include "fs/vfs.hpp"
 #include "fs/savedata.hpp"
+#include "gpu/gnm_parser.hpp"
+#include "gpu/vulkan_backend.hpp"
 
 #include <string>
 #include <vector>
@@ -31,6 +33,7 @@ private:
     void render_threads_pane();
     void render_syscalls_pane();
     void render_vfs_pane();
+    void render_gpu_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -48,6 +51,8 @@ private:
     quin::cpu::ExecutionEngine m_execution_engine;
     quin::kernel::ModuleManager m_module_manager;
     quin::fs::SaveDataManager m_savedata_mgr;
+    quin::gpu::GnmCmdParser m_gpu_parser;
+    quin::gpu::VulkanBackend m_vulkan_backend;
     quin::loader::ParsedElf m_parsed_elf;
     quin::loader::LoadResult m_load_result;
 

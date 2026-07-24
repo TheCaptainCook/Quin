@@ -11,10 +11,12 @@ namespace quin::gui {
 DebugShell::DebugShell()
     : m_execution_engine(m_address_space, m_kernel),
       m_module_manager(m_kernel, m_execution_engine.get_syscall_dispatcher()),
-      m_savedata_mgr(m_execution_engine.get_syscall_dispatcher().get_vfs()) {
+      m_savedata_mgr(m_execution_engine.get_syscall_dispatcher().get_vfs()),
+      m_gpu_parser(m_address_space) {
     m_module_manager.register_all_modules();
     m_savedata_mgr.mount_savedata(quin::fs::SaveDataConfig{1000, "CUSA00001", 32 * 1024 * 1024});
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 4 VFS & Decompression.");
+    m_vulkan_backend.initialize();
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 5 GPU Command Processing & Vulkan Backend.");
 }
 
 DebugShell::~DebugShell() = default;
@@ -26,6 +28,7 @@ void DebugShell::render() {
     render_threads_pane();
     render_syscalls_pane();
     render_vfs_pane();
+    render_gpu_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
@@ -150,7 +153,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 4)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 5)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -323,9 +326,29 @@ void DebugShell::render_vfs_pane() {
     ImGui::End();
 }
 
-void DebugShell::render_telemetry_pane() {
+void DebugShell::render_gpu_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 620), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(450, 200), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 240), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("GPU & Vulkan Backend (Phase 5)", nullptr)) {
+        const auto& dev_info = m_vulkan_backend.get_device_info();
+        ImGui::Text("Physical GPU: %s", dev_info.device_name.c_str());
+        ImGui::Text("Driver Version: %s", dev_info.driver_version.c_str());
+        ImGui::Text("VRAM: %.2f GB", static_cast<double>(dev_info.vram_bytes) / (1024.0 * 1024.0 * 1024.0));
+        ImGui::Separator();
+
+        ImGui::Text("PM4 Packets Parsed: %llu", m_gpu_parser.get_total_packets_parsed());
+        ImGui::Text("GNM Draw Calls Parsed: %llu", m_gpu_parser.get_total_draw_calls());
+        ImGui::Text("Rendered Draw Calls: %llu", m_vulkan_backend.get_total_draw_calls_rendered());
+        ImGui::Text("Cached Vulkan PSOs: %zu", m_vulkan_backend.get_cached_pipelines_count());
+        ImGui::Text("PSO Cache Hits: %llu", m_vulkan_backend.get_total_pso_cache_hits());
+    }
+    ImGui::End();
+}
+
+void DebugShell::render_telemetry_pane() {
+    ImGui::SetNextWindowPos(ImVec2(800, 870), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 180), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("System Telemetry", nullptr)) {
         ImGuiIO& io = ImGui::GetIO();
@@ -346,7 +369,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 4 Filesystem & Decompression");
+        ImGui::Text("Quin PS5 Emulator — Phase 5 GPU & Vulkan Translation");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

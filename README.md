@@ -6,7 +6,7 @@
 
 ## 📖 Official Project Wiki & Documentation
 
-Explore the complete, in-depth **[Project Wiki](docs/wiki/Home.md)**:
+Explore the complete, in-depth **[Project Wiki](docs/wiki/Home.md)** (featuring custom sidebar `_Sidebar.md` and footer `_Footer.md` navigation):
 - 🚀 **[Architecture Overview](docs/wiki/Architecture-Overview.md)** — Low-level system design and dataflow
 - 📜 **[Roadmap & Status](docs/wiki/Roadmap-and-Status.md)** — Detailed 10-phase development milestones
 - 🧠 **[CPU & Memory Subsystem](docs/wiki/CPU-and-Memory-Subsystem.md)** — ELF/SELF loader, memory layout & VEH
@@ -17,6 +17,7 @@ Explore the complete, in-depth **[Project Wiki](docs/wiki/Home.md)**:
 - 🎯 **[Compatibility & Triage](docs/wiki/Compatibility-and-Stub-Triage.md)** — Per-title database & automated symbol triage
 - ⚡ **[Performance & Optimization](docs/wiki/Performance-and-Optimization.md)** — Disk PSO cache, async shaders & frame pacing
 - 🛠️ **[Building & Debugging](docs/wiki/Building-and-Debugging.md)** — Prerequisites, CMake steps & Catch2 unit tests
+- 📌 **[Custom Sidebar](docs/wiki/_Sidebar.md)** & **[Custom Footer](docs/wiki/_Footer.md)** — Unified wiki navigation modules
 
 ---
 

@@ -68,6 +68,8 @@ add_library(quin-core STATIC
     src/gpu/shader/shader_cache.cpp
     src/audio/audio_engine.cpp
     src/input/input_manager.cpp
+    src/compat/title_db.cpp
+    src/compat/compat_triage.cpp
 )
 
 target_include_directories(quin-core PUBLIC
@@ -113,6 +115,7 @@ if(BUILD_TESTING)
         tests/unit/test_shader_recompiler.cpp
         tests/unit/test_audio_subsystem.cpp
         tests/unit/test_input_subsystem.cpp
+        tests/unit/test_compatibility_db.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

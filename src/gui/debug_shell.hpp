@@ -16,6 +16,8 @@
 #include "gpu/shader/shader_cache.hpp"
 #include "audio/audio_engine.hpp"
 #include "input/input_manager.hpp"
+#include "compat/title_db.hpp"
+#include "compat/compat_triage.hpp"
 
 #include <string>
 #include <vector>
@@ -41,6 +43,7 @@ private:
     void render_shader_pane();
     void render_audio_pane();
     void render_input_pane();
+    void render_compat_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -64,6 +67,8 @@ private:
     quin::gpu::shader::ShaderCache m_shader_cache;
     quin::audio::AudioEngine m_audio_engine;
     quin::input::InputManager m_input_manager;
+    quin::compat::TitleDatabase m_title_db;
+    quin::compat::CompatTriage m_triage;
     quin::loader::ParsedElf m_parsed_elf;
     quin::loader::LoadResult m_load_result;
 

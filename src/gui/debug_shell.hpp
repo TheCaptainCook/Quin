@@ -12,8 +12,11 @@
 #include "fs/savedata.hpp"
 #include "gpu/gnm_parser.hpp"
 #include "gpu/vulkan_backend.hpp"
+#include "gpu/pso_disk_cache.hpp"
+#include "gpu/frame_pacing.hpp"
 #include "gpu/shader/shader_recompiler.hpp"
 #include "gpu/shader/shader_cache.hpp"
+#include "gpu/shader/async_shader_compiler.hpp"
 #include "audio/audio_engine.hpp"
 #include "input/input_manager.hpp"
 #include "compat/title_db.hpp"
@@ -44,6 +47,7 @@ private:
     void render_audio_pane();
     void render_input_pane();
     void render_compat_pane();
+    void render_performance_pane();
     void render_telemetry_pane();
     void render_about_dialog();
 
@@ -63,8 +67,11 @@ private:
     quin::fs::SaveDataManager m_savedata_mgr;
     quin::gpu::GnmCmdParser m_gpu_parser;
     quin::gpu::VulkanBackend m_vulkan_backend;
+    quin::gpu::PsoDiskCache m_pso_disk_cache;
+    quin::gpu::FramePacingRegulator m_frame_pacing;
     quin::gpu::shader::ShaderRecompiler m_shader_recompiler;
     quin::gpu::shader::ShaderCache m_shader_cache;
+    quin::gpu::shader::AsyncShaderCompiler m_async_shader_compiler;
     quin::audio::AudioEngine m_audio_engine;
     quin::input::InputManager m_input_manager;
     quin::compat::TitleDatabase m_title_db;

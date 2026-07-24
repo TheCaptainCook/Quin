@@ -12,12 +12,15 @@ DebugShell::DebugShell()
     : m_execution_engine(m_address_space, m_kernel),
       m_module_manager(m_kernel, m_execution_engine.get_syscall_dispatcher()),
       m_savedata_mgr(m_execution_engine.get_syscall_dispatcher().get_vfs()),
-      m_gpu_parser(m_address_space) {
+      m_gpu_parser(m_address_space),
+      m_async_shader_compiler(m_shader_recompiler, m_shader_cache, 2) {
     m_module_manager.register_all_modules();
     m_savedata_mgr.mount_savedata(quin::fs::SaveDataConfig{1000, "CUSA00001", 32 * 1024 * 1024});
     m_vulkan_backend.initialize();
     m_audio_engine.initialize();
     m_input_manager.initialize();
+    m_async_shader_compiler.start();
+    m_pso_disk_cache.load_from_disk();
 
     // Open default DualSense pad for UI telemetry demonstration
     m_input_manager.open_pad(0);
@@ -38,17 +41,29 @@ DebugShell::DebugShell()
     uint32_t dummy_ps[] = { 0x7E000202, 0x7E020203, 0xBF810000 };
 
     auto vs_res = m_shader_recompiler.recompile(dummy_vs, sizeof(dummy_vs), quin::gpu::shader::ShaderType::Vertex);
-    if (vs_res.success) m_shader_cache.put(vs_res.shader);
+    if (vs_res.success) {
+        m_shader_cache.put(vs_res.shader);
+        quin::gpu::PsoKey vs_key{};
+        vs_key.rt_format = quin::gpu::GnmSurfaceFormat::R8G8B8A8_UNORM;
+        m_pso_disk_cache.put_record(vs_key, 1001);
+    }
 
     auto ps_res = m_shader_recompiler.recompile(dummy_ps, sizeof(dummy_ps), quin::gpu::shader::ShaderType::Pixel);
-    if (ps_res.success) m_shader_cache.put(ps_res.shader);
+    if (ps_res.success) {
+        m_shader_cache.put(ps_res.shader);
+    }
 
-    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 9 Compatibility Expansion & Triage Suite.");
+    m_pso_disk_cache.save_to_disk();
+    QUIN_LOG_INFO("Quin Debug Shell UI initialized with Phase 10 Performance & 60FPS Tuning Engine.");
 }
 
-DebugShell::~DebugShell() = default;
+DebugShell::~DebugShell() {
+    m_async_shader_compiler.stop();
+}
 
 void DebugShell::render() {
+    m_frame_pacing.begin_frame();
+
     render_menu_bar();
     render_log_pane();
     render_elf_loader_pane();
@@ -60,11 +75,14 @@ void DebugShell::render() {
     render_audio_pane();
     render_input_pane();
     render_compat_pane();
+    render_performance_pane();
     render_telemetry_pane();
 
     if (m_show_about_dialog) {
         render_about_dialog();
     }
+
+    m_frame_pacing.end_frame();
 }
 
 void DebugShell::render_menu_bar() {
@@ -184,7 +202,7 @@ void DebugShell::render_elf_loader_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Executable Loader Status (Phase 9)", nullptr)) {
+    if (ImGui::Begin("Executable Loader Status (Phase 10)", nullptr)) {
         if (!m_elf_loaded) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "No executable loaded in guest memory.");
             ImGui::Spacing();
@@ -495,6 +513,42 @@ void DebugShell::render_compat_pane() {
     ImGui::End();
 }
 
+void DebugShell::render_performance_pane() {
+    ImGui::SetNextWindowPos(ImVec2(10, 1410), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(780, 260), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Performance Tuning & 60FPS Engine (Phase 10)", nullptr)) {
+        ImGui::Text("Target Framerate: %.1f FPS (Mode: %s)",
+                    m_frame_pacing.get_current_fps(),
+                    m_frame_pacing.get_mode() == quin::gpu::FramePacingMode::Locked60 ? "60 FPS Lock" :
+                    (m_frame_pacing.get_mode() == quin::gpu::FramePacingMode::Locked30 ? "30 FPS Lock" : "Unlocked"));
+        ImGui::Text("Last Frame Time: %.3f ms | Avg Frame Time: %.3f ms",
+                    m_frame_pacing.get_last_frame_time_ms(), m_frame_pacing.get_avg_frame_time_ms());
+        ImGui::Separator();
+
+        if (ImGui::Button("Lock 60 FPS")) m_frame_pacing.set_mode(quin::gpu::FramePacingMode::Locked60);
+        ImGui::SameLine();
+        if (ImGui::Button("Lock 30 FPS")) m_frame_pacing.set_mode(quin::gpu::FramePacingMode::Locked30);
+        ImGui::SameLine();
+        if (ImGui::Button("Unlocked FPS")) m_frame_pacing.set_mode(quin::gpu::FramePacingMode::Unlocked);
+
+        ImGui::Spacing();
+        float scale = m_frame_pacing.get_resolution_scale();
+        if (ImGui::SliderFloat("Dynamic Resolution Scale (FSR)", &scale, 0.5f, 1.0f, "%.2fx")) {
+            m_frame_pacing.set_resolution_scale(scale);
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Async Shader Compiler: %zu Workers | %llu Completed | %zu Pending",
+                    m_async_shader_compiler.get_worker_threads_count(),
+                    m_async_shader_compiler.get_completed_jobs_count(),
+                    m_async_shader_compiler.get_pending_jobs_count());
+        ImGui::Text("Disk PSO Cache Directory: '%s' | %zu Persistent PSOs Saved",
+                    m_pso_disk_cache.get_cache_dir().c_str(), m_pso_disk_cache.get_records_count());
+    }
+    ImGui::End();
+}
+
 void DebugShell::render_telemetry_pane() {
     ImGui::SetNextWindowPos(ImVec2(800, 870), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 180), ImGuiCond_FirstUseEver);
@@ -518,7 +572,7 @@ void DebugShell::render_telemetry_pane() {
 void DebugShell::render_about_dialog() {
     ImGui::OpenPopup("About Quin");
     if (ImGui::BeginPopupModal("About Quin", &m_show_about_dialog, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Quin PS5 Emulator — Phase 9 Compatibility Expansion");
+        ImGui::Text("Quin PS5 Emulator — Phase 10 Performance & 60FPS Engine Pass");
         ImGui::Separator();
         ImGui::Text("A lean x86-64 translation layer and system emulator.");
         ImGui::Text("License: BSD 3-Clause License");

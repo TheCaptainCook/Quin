@@ -64,8 +64,11 @@ add_library(quin-core STATIC
     src/gpu/gnm_parser.cpp
     src/gpu/resource_translator.cpp
     src/gpu/vulkan_backend.cpp
+    src/gpu/pso_disk_cache.cpp
+    src/gpu/frame_pacing.cpp
     src/gpu/shader/shader_recompiler.cpp
     src/gpu/shader/shader_cache.cpp
+    src/gpu/shader/async_shader_compiler.cpp
     src/audio/audio_engine.cpp
     src/input/input_manager.cpp
     src/compat/title_db.cpp
@@ -116,6 +119,7 @@ if(BUILD_TESTING)
         tests/unit/test_audio_subsystem.cpp
         tests/unit/test_input_subsystem.cpp
         tests/unit/test_compatibility_db.cpp
+        tests/unit/test_performance_60fps.cpp
     )
 
     target_link_libraries(quin-tests PRIVATE

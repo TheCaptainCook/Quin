@@ -4,6 +4,22 @@
 
 ---
 
+## 📖 Official Project Wiki & Documentation
+
+Explore the complete, in-depth **[Project Wiki](docs/wiki/Home.md)**:
+- 🚀 **[Architecture Overview](docs/wiki/Architecture-Overview.md)** — Low-level system design and dataflow
+- 📜 **[Roadmap & Status](docs/wiki/Roadmap-and-Status.md)** — Detailed 10-phase development milestones
+- 🧠 **[CPU & Memory Subsystem](docs/wiki/CPU-and-Memory-Subsystem.md)** — ELF/SELF loader, memory layout & VEH
+- 🏛️ **[Syscalls & System Libraries](docs/wiki/Syscalls-and-System-Libraries.md)** — FreeBSD ABI, `libkernel` & `libSce*` stubs
+- 🎮 **[GPU & Shader Recompilation](docs/wiki/GPU-and-Shader-Recompilation.md)** — PM4 packet parser, Vulkan 1.3 & RDNA2 recompiler
+- 🔊 **[Audio & Input Subsystems](docs/wiki/Audio-and-Input-Subsystems.md)** — Tempest 3D Audio & DualSense HID driver
+- 📁 **[Filesystem & Storage](docs/wiki/Filesystem-and-Decompression.md)** — VFS mounts, SaveData & Kraken decompression
+- 🎯 **[Compatibility & Triage](docs/wiki/Compatibility-and-Stub-Triage.md)** — Per-title database & automated symbol triage
+- ⚡ **[Performance & Optimization](docs/wiki/Performance-and-Optimization.md)** — Disk PSO cache, async shaders & frame pacing
+- 🛠️ **[Building & Debugging](docs/wiki/Building-and-Debugging.md)** — Prerequisites, CMake steps & Catch2 unit tests
+
+---
+
 ## 💡 What is Quin? (In Plain English)
 
 **Quin** is a software translation layer that allows computers (Windows, Linux, and macOS) to run PlayStation 5 software. 

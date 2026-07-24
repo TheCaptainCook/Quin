@@ -84,4 +84,4 @@ ctest --test-dir build -C Release --output-on-failure
 
 ## 📄 Licensing & Governance
 
-- Licensed under the **[BSD 3-Clause License](LICENSE)**.
+- Licensed under the **[Non-Commercial Personal Use License](LICENSE)** (Personal and educational use only; commercial/for-profit use strictly prohibited; mandatory attribution to Masem required).

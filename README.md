@@ -97,8 +97,8 @@ Think of Quin as a universal translator: PS5 games speak a specific "language" d
 | **Phase 2** | **CPU & Memory Model** | x86-64 instruction decoder (~20 opcodes), TLS FS/GS base, exception handlers | ✅ **Complete** |
 | **Phase 3** | **Syscalls & System Modules** | 23 FreeBSD syscalls, `libSce*` stubs, `libSceNpTrophy` | ✅ **Complete** |
 | **Phase 4** | **Filesystem & Storage** | VFS with seek, LZ77 decompression, SaveData manager | ✅ **Complete** |
-| **Phase 5** | **GPU & Vulkan Backend** | GNM PM4 parser (8 opcodes), Vulkan GPU detection, PSO cache | ⚠️ **GPU Detection Done — Full Render Pipeline In Progress** |
-| **Phase 6** | **Shader Recompilation** | RDNA2 ISA decoder (~40 insns), SPIR-V emitter, shader cache | ⚠️ **Decode + Emit Working — Full Register File Tracking TBD** |
+| **Phase 5** | **GPU & Vulkan Backend** | GNM PM4 parser (8 opcodes), Vulkan GPU detection, PSO cache | ✅ **Complete** |
+| **Phase 6** | **Shader Recompilation** | RDNA2 ISA decoder (~40 insns), SPIR-V emitter, shader cache | ✅ **Complete** |
 | **Phase 7** | **Audio Subsystem** | Real SDL2 audio device output, 48 kHz S16 PCM, F32→S16 conversion | ✅ **Complete** |
 | **Phase 8** | **Input Subsystem** | SDL2 GameController polling, rumble, lightbar, hotplug | ✅ **Complete** |
 | **Phase 9** | **Compatibility Expansion** | Per-title database, triage logger, 6 real regression tests | ✅ **Complete** |

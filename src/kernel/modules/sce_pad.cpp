@@ -38,6 +38,7 @@ void register_sce_pad(LibKernel& kernel) {
     });
 
     kernel.register_stub("scePadSetLightBar", [](uint64_t handle, uint64_t rgb_ptr, uint64_t, uint64_t) -> int64_t {
+        (void)rgb_ptr;
         g_input_manager.set_lightbar(static_cast<quin::input::PadHandle>(handle), 0, 102, 255);
         return 0;
     });

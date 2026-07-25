@@ -16,6 +16,7 @@ enum class PagePermission : uint32_t {
     Execute     = 1 << 2,
     ReadWrite   = Read | Write,
     ReadExecute = Read | Execute,
+    ReadWriteExecute = Read | Write | Execute,
     All         = Read | Write | Execute
 };
 

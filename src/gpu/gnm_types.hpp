@@ -16,6 +16,8 @@ enum GnmOpcode : uint8_t {
     IT_NUM_INSTANCES      = 0x2D,
     IT_DRAW_INDEX_AUTO    = 0x2D,
     IT_DRAW_INDEX_2       = 0x36,
+    IT_EVENT_WRITE        = 0x46,
+    IT_WAIT_REG_MEM       = 0x3C,
     IT_SET_CONTEXT_REG    = 0x69
 };
 
@@ -54,10 +56,13 @@ struct GnmDrawCommand {
 struct GnmContextState {
     GnmSurfaceFormat render_target_format{GnmSurfaceFormat::R8G8B8A8_UNORM};
     GnmSurfaceFormat depth_target_format{GnmSurfaceFormat::D32_SFLOAT};
+    GnmSurfaceFormat depth_format{GnmSurfaceFormat::D32_SFLOAT};
     uint32_t viewport_width{1920};
     uint32_t viewport_height{1080};
     bool depth_test_enable{true};
+    bool depth_write_enable{true};
     bool blend_enable{false};
+    bool index_size_16bit{true};
 };
 
 } // namespace quin::gpu

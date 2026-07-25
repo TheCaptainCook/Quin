@@ -62,6 +62,7 @@ DebugShell::~DebugShell() {
 }
 
 void DebugShell::render() {
+    m_input_manager.poll_input();
     m_frame_pacing.begin_frame();
 
     render_menu_bar();
@@ -80,9 +81,9 @@ void DebugShell::render() {
         if (ImGui::BeginTabBar("QuinMainWorkspaceTabBar", ImGuiTabBarFlags_Reorderable)) {
             
             // -----------------------------------------------------------------
-            // TAB 1: 📊 Main Overview & Dashboard
+            // TAB 1: Main Overview & Dashboard
             // -----------------------------------------------------------------
-            if (ImGui::BeginTabItem("📊 Main Dashboard")) {
+            if (ImGui::BeginTabItem("Main Dashboard")) {
                 float avail_w = ImGui::GetContentRegionAvail().x;
                 float avail_h = ImGui::GetContentRegionAvail().y;
                 float col1_w = avail_w * 0.60f;
@@ -104,9 +105,9 @@ void DebugShell::render() {
             }
 
             // -----------------------------------------------------------------
-            // TAB 2: ⚡ CPU & Kernel Architecture
+            // TAB 2: CPU & Kernel Architecture
             // -----------------------------------------------------------------
-            if (ImGui::BeginTabItem("⚡ CPU Execution & Kernel")) {
+            if (ImGui::BeginTabItem("CPU Execution & Kernel")) {
                 float avail_w = ImGui::GetContentRegionAvail().x;
                 float avail_h = ImGui::GetContentRegionAvail().y;
 
@@ -124,9 +125,9 @@ void DebugShell::render() {
             }
 
             // -----------------------------------------------------------------
-            // TAB 3: 🎮 GPU & Shader Recompiler
+            // TAB 3: GPU & Shader Recompiler
             // -----------------------------------------------------------------
-            if (ImGui::BeginTabItem("🎮 GPU Rendering & Shaders")) {
+            if (ImGui::BeginTabItem("GPU Rendering & Shaders")) {
                 float avail_w = ImGui::GetContentRegionAvail().x;
                 float avail_h = ImGui::GetContentRegionAvail().y;
 
@@ -144,9 +145,9 @@ void DebugShell::render() {
             }
 
             // -----------------------------------------------------------------
-            // TAB 4: 🔊 Audio & DualSense Input
+            // TAB 4: Audio & DualSense Input
             // -----------------------------------------------------------------
-            if (ImGui::BeginTabItem("🔊 Audio & DualSense Input")) {
+            if (ImGui::BeginTabItem("Audio & DualSense Input")) {
                 float avail_w = ImGui::GetContentRegionAvail().x;
                 float avail_h = ImGui::GetContentRegionAvail().y;
 
@@ -164,17 +165,17 @@ void DebugShell::render() {
             }
 
             // -----------------------------------------------------------------
-            // TAB 5: 📁 Storage & Virtual Filesystem
+            // TAB 5: Storage & Virtual Filesystem
             // -----------------------------------------------------------------
-            if (ImGui::BeginTabItem("📁 Storage & VFS")) {
+            if (ImGui::BeginTabItem("Storage & VFS")) {
                 render_vfs_pane();
                 ImGui::EndTabItem();
             }
 
             // -----------------------------------------------------------------
-            // TAB 6: 🎯 Compatibility & Stub Triage
+            // TAB 6: Compatibility & Stub Triage
             // -----------------------------------------------------------------
-            if (ImGui::BeginTabItem("🎯 Compatibility & Triage")) {
+            if (ImGui::BeginTabItem("Compatibility & Triage")) {
                 render_compat_pane();
                 ImGui::EndTabItem();
             }

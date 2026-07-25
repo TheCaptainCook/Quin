@@ -7,6 +7,8 @@
 #include <mutex>
 #include <memory>
 
+struct SDL_AudioSpec;
+
 namespace quin::audio {
 
 class AudioEngine {
@@ -27,6 +29,7 @@ public:
     std::vector<AudioPortState> get_active_ports() const;
     uint64_t get_total_samples_processed() const { return m_total_samples_processed; }
     bool is_initialized() const { return m_initialized; }
+    bool has_real_audio() const { return m_sdl_audio_device_id != 0; }
 
 private:
     bool m_initialized{false};
@@ -34,6 +37,11 @@ private:
     std::unordered_map<AudioPortHandle, AudioPortState> m_ports;
     uint64_t m_total_samples_processed{0};
     mutable std::mutex m_mutex;
+
+    // SDL Audio device
+    uint32_t m_sdl_audio_device_id{0};
+    uint32_t m_device_sample_rate{48000};
+    uint32_t m_device_channels{2};
 };
 
 } // namespace quin::audio

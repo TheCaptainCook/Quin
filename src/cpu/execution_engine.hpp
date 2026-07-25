@@ -43,8 +43,19 @@ public:
     quin::kernel::SyscallDispatcher& get_syscall_dispatcher() { return m_syscalls; }
     const quin::kernel::SyscallDispatcher& get_syscall_dispatcher() const { return m_syscalls; }
 
+    // Execute a single instruction on a given register set (used by thread manager)
+    bool step_with_regs(CpuRegisters& regs);
+
 private:
     void trigger_trap(const std::string& reason);
+
+    // x86-64 instruction decoder helpers
+    size_t get_instruction_length(const uint8_t* code, size_t max_bytes) const;
+    uint64_t& reg_by_index(CpuRegisters& regs, uint8_t idx);
+    uint64_t read_reg_by_index(const CpuRegisters& regs, uint8_t idx) const;
+    void update_flags_add(CpuRegisters& regs, uint64_t a, uint64_t b, uint64_t result);
+    void update_flags_sub(CpuRegisters& regs, uint64_t a, uint64_t b, uint64_t result);
+    void update_flags_logic(CpuRegisters& regs, uint64_t result);
 
     quin::memory::GuestAddressSpace& m_memory;
     quin::kernel::LibKernel& m_kernel;

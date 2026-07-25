@@ -37,6 +37,9 @@ public:
     std::vector<ThreadInfo> get_active_threads_info() const;
     size_t get_active_thread_count() const;
 
+    // Set FS/GS base register for TLS (platform-specific)
+    void set_tls_base(uint64_t tls_vaddr);
+
 private:
     uint64_t allocate_tls_block(GuestThreadId id);
 

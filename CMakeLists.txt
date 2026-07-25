@@ -55,12 +55,14 @@ add_library(quin-core STATIC
     src/kernel/modules/sce_user_service.cpp
     src/kernel/modules/sce_audio_out.cpp
     src/kernel/modules/sce_pad.cpp
+    src/kernel/modules/sce_np_trophy.cpp
     src/cpu/execution_engine.cpp
     src/cpu/thread_manager.cpp
     src/cpu/exception_handler.cpp
     src/fs/vfs.cpp
     src/fs/savedata.cpp
     src/fs/decompression/kraken_decoder.cpp
+    src/loader/dynamic_linker.cpp
     src/gpu/gnm_parser.cpp
     src/gpu/resource_translator.cpp
     src/gpu/vulkan_backend.cpp
@@ -89,6 +91,13 @@ if(TARGET SDL2::SDL2-static)
     target_link_libraries(quin-core PUBLIC SDL2::SDL2-static)
 else()
     target_link_libraries(quin-core PUBLIC SDL2::SDL2)
+endif()
+
+# Conditional Vulkan linking (real GPU detection when SDK is available)
+if(Vulkan_FOUND)
+    target_compile_definitions(quin-core PUBLIC QUIN_HAS_VULKAN)
+    target_link_libraries(quin-core PUBLIC Vulkan::Vulkan)
+    message(STATUS "Vulkan linked — real GPU detection enabled.")
 endif()
 
 # ------------------------------------------------------------------------------

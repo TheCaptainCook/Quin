@@ -190,6 +190,32 @@ bool VirtualFileSystem::close_file(VfsFileHandle handle) {
     return false;
 }
 
+int64_t VirtualFileSystem::seek_file(VfsFileHandle handle, int64_t offset, int whence) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto st_it = m_streams.find(handle);
+    if (st_it == m_streams.end() || !st_it->second || !st_it->second->is_open()) {
+        return -1;
+    }
+
+    std::ios_base::seekdir dir;
+    switch (whence) {
+        case 0: dir = std::ios::beg; break;  // SEEK_SET
+        case 1: dir = std::ios::cur; break;  // SEEK_CUR
+        case 2: dir = std::ios::end; break;  // SEEK_END
+        default: return -1;
+    }
+
+    st_it->second->seekg(offset, dir);
+    st_it->second->seekp(offset, dir);
+
+    auto new_pos = st_it->second->tellg();
+    if (new_pos >= 0) {
+        m_open_files[handle].position = static_cast<uint64_t>(new_pos);
+    }
+
+    return static_cast<int64_t>(new_pos);
+}
+
 bool VirtualFileSystem::stat_file(const std::string& guest_vpath, uint64_t& out_size) const {
     std::string host_p = resolve_path(guest_vpath);
     try {

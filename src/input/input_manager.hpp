@@ -6,6 +6,9 @@
 #include <mutex>
 #include <vector>
 
+struct _SDL_GameController;
+typedef struct _SDL_GameController SDL_GameController;
+
 namespace quin::input {
 
 class InputManager {
@@ -15,6 +18,9 @@ public:
 
     bool initialize();
     void shutdown();
+
+    // Poll all connected controllers for live input
+    void poll_input();
 
     PadHandle open_pad(int32_t user_id);
     bool close_pad(PadHandle handle);
@@ -27,10 +33,13 @@ public:
 
     size_t get_connected_pads_count() const;
     std::vector<PadState> get_all_pads() const;
+    bool has_real_controllers() const { return m_has_real_controllers; }
 
 private:
     bool m_initialized{false};
+    bool m_has_real_controllers{false};
     std::unordered_map<PadHandle, PadState> m_pads;
+    std::unordered_map<PadHandle, SDL_GameController*> m_sdl_controllers;
     mutable std::mutex m_mutex;
 };
 

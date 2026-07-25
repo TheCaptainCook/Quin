@@ -9,14 +9,19 @@
 #include <unordered_map>
 #include <mutex>
 
+#ifdef QUIN_HAS_VULKAN
+#include <vulkan/vulkan.h>
+#endif
+
 namespace quin::gpu {
 
 struct VulkanDeviceInfo {
-    std::string device_name{"AMD Radeon RX 6700 XT (RDNA2 / Vulkan 1.3)"};
-    std::string driver_version{"24.5.1"};
-    uint32_t api_version{13}; // Vulkan 1.3
-    uint64_t vram_bytes{16ULL * 1024 * 1024 * 1024}; // 16GB
+    std::string device_name{"No GPU Detected"};
+    std::string driver_version{"N/A"};
+    uint32_t api_version{0};
+    uint64_t vram_bytes{0};
     bool initialized{false};
+    bool real_vulkan{false}; // true if detected via real Vulkan API
 };
 
 struct DummyPipeline {
@@ -48,6 +53,12 @@ private:
     uint64_t m_total_pso_cache_hits{0};
     uint64_t m_total_draw_calls_rendered{0};
     mutable std::mutex m_mutex;
+
+#ifdef QUIN_HAS_VULKAN
+    VkInstance m_vk_instance{VK_NULL_HANDLE};
+    VkPhysicalDevice m_vk_physical_device{VK_NULL_HANDLE};
+    VkDevice m_vk_device{VK_NULL_HANDLE};
+#endif
 };
 
 } // namespace quin::gpu

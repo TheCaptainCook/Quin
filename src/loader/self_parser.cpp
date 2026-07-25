@@ -102,6 +102,72 @@ ParsedElf SelfParser::parse_buffer(const std::vector<uint8_t>& buffer) {
         }
     }
 
+    // =========================================================================
+    // Parse PT_DYNAMIC segment to extract DT_NEEDED libraries and symbols
+    // =========================================================================
+    for (const auto& ph : result.program_headers) {
+        if (ph.p_type == PT_DYNAMIC) {
+            QUIN_LOG_INFO("  Found PT_DYNAMIC segment at file offset 0x{:X}, size {}", ph.p_offset, ph.p_filesz);
+
+            size_t dyn_file_offset = elf_offset + ph.p_offset;
+            if (dyn_file_offset + ph.p_filesz > buffer.size()) {
+                QUIN_LOG_WARN("  PT_DYNAMIC segment extends beyond buffer — skipping.");
+                break;
+            }
+
+            // First pass: find DT_STRTAB offset and size
+            uint64_t strtab_offset = 0;
+            size_t num_dyn_entries = ph.p_filesz / sizeof(Elf64_Dyn);
+            std::vector<uint64_t> needed_offsets;
+
+            for (size_t i = 0; i < num_dyn_entries; ++i) {
+                Elf64_Dyn dyn{};
+                size_t entry_pos = dyn_file_offset + i * sizeof(Elf64_Dyn);
+                if (entry_pos + sizeof(Elf64_Dyn) > buffer.size()) break;
+                std::memcpy(&dyn, buffer.data() + entry_pos, sizeof(Elf64_Dyn));
+
+                if (dyn.d_tag == DT_NULL) break;
+
+                if (dyn.d_tag == DT_STRTAB) {
+                    strtab_offset = dyn.d_un.d_ptr;
+                } else if (dyn.d_tag == DT_NEEDED) {
+                    needed_offsets.push_back(dyn.d_un.d_val);
+                } else if (dyn.d_tag == DT_SYMTAB) {
+                    QUIN_LOG_INFO("  DT_SYMTAB at VAddr: 0x{:016X}", dyn.d_un.d_ptr);
+                }
+            }
+
+            // Resolve DT_NEEDED names from string table
+            if (strtab_offset > 0) {
+                // Try to find strtab in file: look for a PT_LOAD segment covering strtab_offset
+                for (const auto& load_ph : result.program_headers) {
+                    if (load_ph.p_type == PT_LOAD &&
+                        strtab_offset >= load_ph.p_vaddr &&
+                        strtab_offset < load_ph.p_vaddr + load_ph.p_filesz) {
+                        
+                        uint64_t strtab_file_base = elf_offset + load_ph.p_offset + (strtab_offset - load_ph.p_vaddr);
+                        
+                        for (uint64_t name_off : needed_offsets) {
+                            uint64_t str_pos = strtab_file_base + name_off;
+                            if (str_pos < buffer.size()) {
+                                std::string lib_name;
+                                for (size_t c = 0; str_pos + c < buffer.size() && buffer[str_pos + c] != 0 && c < 256; ++c) {
+                                    lib_name += static_cast<char>(buffer[str_pos + c]);
+                                }
+                                if (!lib_name.empty()) {
+                                    result.needed_libraries.push_back(lib_name);
+                                    QUIN_LOG_INFO("  DT_NEEDED: '{}'", lib_name);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            break; // Only one PT_DYNAMIC segment
+        }
+    }
+
     result.valid = true;
     return result;
 }

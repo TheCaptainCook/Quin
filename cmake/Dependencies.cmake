@@ -1,6 +1,16 @@
 include(FetchContent)
 
 # ------------------------------------------------------------------------------
+# 0. Vulkan SDK (Optional — enables real GPU detection)
+# ------------------------------------------------------------------------------
+find_package(Vulkan QUIET)
+if(Vulkan_FOUND)
+    message(STATUS "Vulkan SDK found: ${Vulkan_LIBRARY}")
+else()
+    message(STATUS "Vulkan SDK not found — GPU backend will run in simulated mode.")
+endif()
+
+# ------------------------------------------------------------------------------
 # 1. spdlog (Fast C++ Logging Library)
 # ------------------------------------------------------------------------------
 message(STATUS "Fetching spdlog...")

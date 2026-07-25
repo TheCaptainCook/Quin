@@ -40,6 +40,7 @@ public:
     int64_t read_file(VfsFileHandle handle, void* dest, size_t size);
     int64_t write_file(VfsFileHandle handle, const void* src, size_t size);
     bool close_file(VfsFileHandle handle);
+    int64_t seek_file(VfsFileHandle handle, int64_t offset, int whence);
     bool stat_file(const std::string& guest_vpath, uint64_t& out_size) const;
 
     std::string resolve_path(const std::string& guest_vpath) const;
